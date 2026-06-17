@@ -168,18 +168,6 @@ tbody tr{border-bottom:1px solid #1E2A4540}
 .legend-item{display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:7px;background:#141929;border:1px solid #1E2A45;font-size:10px}
 .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 
-/* ══ 발화 자동 감지 오버레이 ══ */
-#speech-overlay{display:none;position:fixed;inset:0;z-index:950;background:#F59E0B;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px}
-#speech-overlay.show{display:flex;animation:fadeIn .3s ease}
-.speech-icon{font-size:80px;margin-bottom:20px;animation:pulse 1s ease-in-out infinite}
-.speech-msg{font-size:clamp(32px,6vw,72px);font-weight:900;color:#1C1400;line-height:1.4;letter-spacing:-1px;text-shadow:0 2px 8px rgba(0,0,0,.12)}
-.speech-dots{display:flex;gap:10px;margin-top:28px}
-.speech-dots span{width:12px;height:12px;border-radius:50%;background:#1C1400;opacity:.4;animation:pdot 1.4s infinite ease-in-out}
-.speech-dots span:nth-child(2){animation-delay:.2s}
-.speech-dots span:nth-child(3){animation-delay:.4s}
-@keyframes pdot{0%,80%,100%{transform:scale(.8);opacity:.4}40%{transform:scale(1.3);opacity:1}}
-.speech-sens-row{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;background:#0B0F1E;border-radius:8px;border:1px solid #1E2A45}
-
 @keyframes fadeIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 </style>
@@ -227,13 +215,6 @@ tbody tr{border-bottom:1px solid #1E2A4540}
   <div class="ln-icon">🍽</div>
   <div class="ln-msg">급식 시간입니다.<em>모두 손 씻고 자리에 앉아 주세요.</em></div>
   <button class="ln-dismiss" onclick="dismissLunchNotif()">확인</button>
-</div>
-
-<!-- 발화 자동 감지 오버레이 -->
-<div id="speech-overlay">
-  <div class="speech-icon">🎤</div>
-  <div class="speech-msg">선생님 말씀 중이니<br>집중해 주세요</div>
-  <div class="speech-dots"><span></span><span></span><span></span></div>
 </div>
 
 <!-- HEADER -->
@@ -286,11 +267,6 @@ tbody tr{border-bottom:1px solid #1E2A4540}
           <span class="shortcut">Space</span>
         </button>
         <div id="mute-indicator">🟣 교사 발화 중 — 이 구간은 기록에서 제외됩니다</div>
-        <div class="speech-sens-row">
-          <span class="lbl" style="margin:0;white-space:nowrap">자동 감지 감도</span>
-          <input type="range" min="20" max="90" value="55" oninput="speechSens=+this.value;document.getElementById('speech-sens-val').textContent=this.value" style="flex:1;accent-color:#818CF8">
-          <span id="speech-sens-val" style="font-family:monospace;font-size:11px;color:#6B7A99;min-width:20px">55</span>
-        </div>
       </div>
       <div class="card" id="stats-card" style="display:none">
         <div class="stats-grid">
@@ -606,11 +582,6 @@ let countdownSec=600,countdownActive=false;
 let warn1Count=0,warn2Count=0;
 let sessions=[];
 
-// ── 발화 자동 감지 ──────────────────────────────────────────────────────
-let speechOnset=0,speechRelease=0,isSpeechActive=false,autoMuted=false;
-let speechFreqData=null,speechSens=55;
-const SPEECH_LO=300,SPEECH_HI=3400,SPEECH_ON=5,SPEECH_OFF=30;
-
 const LEVELS=[
   {max:35,color:"#34D399",label:"매우 조용"},
   {max:55,color:"#A3E635",label:"조용함"},
@@ -637,10 +608,7 @@ async function requestMic(){
 function initAudio(){
   audioCtx=new(window.AudioContext||window.webkitAudioContext)();
   analyser=audioCtx.createAnalyser();analyser.fftSize=2048;
-  analyser.smoothingTimeConstant=0.5;
   audioCtx.createMediaStreamSource(stream).connect(analyser);
-  speechFreqData=new Uint8Array(analyser.frequencyBinCount);
-  speechDetectLoop();
 }
 function readDb(){
   if(!analyser)return 0;
@@ -662,14 +630,12 @@ function tick(){
   else{badge.textContent=lv.label;badge.style.color=lv.color;badge.style.background=lv.color+'22';badge.style.border=`1px solid ${lv.color}55`;}
   rafId=requestAnimationFrame(tick);
 }
-function setMute(on){
-  if(isMuted===on)return;
-  isMuted=on;
+function toggleMute(){
+  isMuted=!isMuted;
   const btn=document.getElementById('mute-btn'),ind=document.getElementById('mute-indicator');
   if(isMuted){btn.classList.add('active');ind.classList.add('visible');document.getElementById('mute-icon').textContent='🔴';document.getElementById('mute-label').textContent='교사 발화 중 — 기록 제외 중';}
   else{btn.classList.remove('active');ind.classList.remove('visible');document.getElementById('mute-icon').textContent='🎤';document.getElementById('mute-label').textContent='교사 발화 중 (기록 제외)';}
 }
-function toggleMute(){autoMuted=false;setMute(!isMuted);}
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&e.target===document.body){e.preventDefault();if(isRecording)toggleMute();}});
 const fmt=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
 function toggleRecord(){if(!isRecording)startRecording();else stopRecording();}
@@ -719,7 +685,7 @@ function stopRecording(){
   countdownActive=false;warnShowing=false;overCount=0;warnStage=0;
   document.getElementById('warn1-overlay').classList.remove('show');
   document.getElementById('warn2-overlay').classList.remove('show');
-  isRecording=false;isMuted=false;autoMuted=false;
+  isRecording=false;isMuted=false;
   document.getElementById('mute-btn').classList.remove('active');
   document.getElementById('mute-indicator').classList.remove('visible');
   document.getElementById('db-value').textContent='—';
@@ -820,34 +786,6 @@ function drawChart(){
   ctx.fillStyle='#6B7A99';ctx.font='9px monospace';ctx.textAlign='center';
   const step=Math.max(1,Math.floor(n/6));
   chartPoints.forEach((p,i)=>{if(i%step===0||i===n-1){ctx.fillText(fmt(p.sec),pad.l+(i/(n-1))*iW,H-4);}});
-}
-
-// ── 발화 자동 감지 루프 ─────────────────────────────────────────────────
-function speechDetectLoop(){
-  if(!analyser||!speechFreqData){requestAnimationFrame(speechDetectLoop);return;}
-  analyser.getByteFrequencyData(speechFreqData);
-  const N=speechFreqData.length;
-  const binHz=audioCtx.sampleRate/analyser.fftSize;
-  const lo=Math.max(0,Math.floor(SPEECH_LO/binHz));
-  const hi=Math.min(N-1,Math.ceil(SPEECH_HI/binHz));
-  const sBins=hi-lo+1,oBins=N-sBins;
-  let sSum=0,oSum=0;
-  for(let i=0;i<N;i++){if(i>=lo&&i<=hi)sSum+=speechFreqData[i];else oSum+=speechFreqData[i];}
-  const avgS=sSum/sBins,avgO=Math.max(oSum/oBins,1),snr=avgS/avgO;
-  const eThr=Math.max(70-speechSens*0.6,5),sThr=Math.max(2.5-speechSens*0.015,1.2);
-  const detected=avgS>eThr&&snr>sThr;
-  if(detected){speechOnset=Math.min(speechOnset+1,SPEECH_ON+5);speechRelease=0;}
-  else{speechRelease=Math.min(speechRelease+1,SPEECH_OFF+5);speechOnset=0;}
-  if(!isSpeechActive&&speechOnset>=SPEECH_ON){
-    isSpeechActive=true;
-    document.getElementById('speech-overlay').classList.add('show');
-    if(isRecording&&!isMuted){autoMuted=true;setMute(true);}
-  }else if(isSpeechActive&&speechRelease>=SPEECH_OFF){
-    isSpeechActive=false;
-    document.getElementById('speech-overlay').classList.remove('show');
-    if(isRecording&&isMuted&&autoMuted){autoMuted=false;setMute(false);}
-  }
-  requestAnimationFrame(speechDetectLoop);
 }
 
 // ══ 초기화 ═════════════════════════════════════════════════════════════
