@@ -113,6 +113,13 @@ tbody tr{border-bottom:1px solid #1E2A4540}
 .no-sessions{text-align:center;color:#3A4A6B;font-size:13px;padding:30px 0}
 .clear-all-btn{padding:7px 16px;border-radius:9px;border:1px solid #EF444444;background:transparent;color:#EF444499;cursor:pointer;font-size:11px;font-weight:600;margin-left:auto;display:block}
 
+/* ══ 1차 경고 미니 배지 ══ */
+#warn1-mini{display:none;position:fixed;left:12px;top:50%;transform:translateY(-50%);z-index:800;background:linear-gradient(145deg,#1C1400,#2D1F00);border:2px solid #F59E0B;border-radius:14px;padding:12px 14px;text-align:center;width:120px;box-shadow:0 0 20px #F59E0B44}
+#warn1-mini.show{display:block;animation:fadeIn .3s ease}
+.w1m-icon{font-size:22px}
+.w1m-label{font-size:13px;font-weight:900;color:#FFF5CC;margin-top:5px;line-height:1.3}
+.w1m-db{font-size:11px;color:#A07A20;margin-top:3px}
+
 /* ══ 1차 경고 ══ */
 #warn1-overlay{display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.75);align-items:center;justify-content:center}
 #warn1-overlay.show{display:flex;animation:fadeIn .25s ease}
@@ -200,16 +207,20 @@ tbody tr{border-bottom:1px solid #1E2A4540}
     <div class="warn1-icon">⚠️</div>
     <div class="warn1-msg">소음 임계치에 도달했습니다.<br>더 조용히 해 주세요.</div>
     <div class="warn1-sub" id="warn1-db">현재 — dB</div>
-    <button class="warn1-btn" onclick="dismissWarn1()">확인</button>
+    <button class="warn1-btn" onclick="dismissWarn1()">교사닫기</button>
   </div>
+</div>
+
+<div id="warn1-mini">
+  <div class="w1m-icon">⚠️</div>
+  <div class="w1m-label">1차 경고</div>
+  <div class="w1m-db" id="warn1-mini-db">— dB</div>
 </div>
 
 <div id="warn2-overlay">
   <div class="warn2-stage">🔴 2차 경고</div>
-  <div class="warn2-msg">2차 소음 임계치에 도달해서<em>10분간 책읽기 하겠습니다.</em></div>
+  <div class="warn2-msg">2차 소음 임계치에 도달해서<em>책읽기 시작합니다.</em></div>
   <div class="warn2-div"></div>
-  <div class="warn2-cnt" id="warn2-cnt">10:00</div>
-  <div class="warn2-cnt-lbl">남은 시간</div>
   <button class="warn2-btn" onclick="dismissWarn2()">교사 닫기</button>
 </div>
 
@@ -635,12 +646,14 @@ function initAudio(){
   speechFreqData=new Uint8Array(analyser.frequencyBinCount);
   speechDetectLoop();
 }
+let _timeDomainBuf=null;
 function readDb(){
   if(!analyser)return 0;
-  const buf=new Float32Array(analyser.fftSize);
-  analyser.getFloatTimeDomainData(buf);
-  let s=0;for(let i=0;i<buf.length;i++)s+=buf[i]**2;
-  const rms=Math.sqrt(s/buf.length);
+  if(!_timeDomainBuf||_timeDomainBuf.length!==analyser.fftSize)
+    _timeDomainBuf=new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(_timeDomainBuf);
+  let s=0;for(let i=0;i<_timeDomainBuf.length;i++)s+=_timeDomainBuf[i]**2;
+  const rms=Math.sqrt(s/_timeDomainBuf.length);
   return rms>0?Math.max(0,Math.min(100,20*Math.log10(rms)+90)):0;
 }
 function tick(){
@@ -675,7 +688,7 @@ function startRecording(){
   document.getElementById('log-body').innerHTML='';
   document.getElementById('warn1-overlay').classList.remove('show');
   document.getElementById('warn2-overlay').classList.remove('show');
-  startTime=Date.now();isRecording=true;isMuted=false;
+  document.getElementById('warn1-mini').classList.remove('show');
   document.getElementById('mute-btn').classList.remove('active');
   document.getElementById('mute-indicator').classList.remove('visible');
   document.getElementById('main-btn').textContent='⏹ 측정 중지';
@@ -771,16 +784,18 @@ function checkThreshold(){
   else overCount=0;
 }
 function triggerWarn1(db){warnShowing=true;warn1Count++;document.getElementById('warn1-db').textContent=`현재 ${db.toFixed(1)} dB`;document.getElementById('warn1-overlay').classList.add('show');playBeepWarn(1);}
-function dismissWarn1(){warnShowing=false;warnStage=1;document.getElementById('warn1-overlay').classList.remove('show');}
+function dismissWarn1(){
+  warnShowing=false;warnStage=1;
+  document.getElementById('warn1-overlay').classList.remove('show');
+  document.getElementById('warn1-mini-db').textContent=document.getElementById('warn1-db').textContent;
+  document.getElementById('warn1-mini').classList.add('show');
+}
 function triggerWarn2(){
-  warnShowing=true;warnStage=2;warn2Count++;countdownSec=600;countdownActive=true;
-  document.getElementById('warn2-cnt').textContent='10:00';
+  warnShowing=true;warnStage=2;warn2Count++;
   document.getElementById('warn2-overlay').classList.add('show');
   playBeepWarn(2);
-  clearInterval(countdownId);
-  countdownId=setInterval(()=>{if(!countdownActive)return;countdownSec--;document.getElementById('warn2-cnt').textContent=fmt(Math.max(0,countdownSec));if(countdownSec<=0){clearInterval(countdownId);countdownActive=false;dismissWarn2();}},1000);
 }
-function dismissWarn2(){warnShowing=false;warnStage=0;countdownActive=false;document.getElementById('warn2-overlay').classList.remove('show');}
+function dismissWarn2(){warnShowing=false;warnStage=0;document.getElementById('warn2-overlay').classList.remove('show');}
 function playBeepWarn(stage){
   try{
     const ctx=new(window.AudioContext||window.webkitAudioContext)();
@@ -832,8 +847,8 @@ function toggleSpeechDetect(){
   }
 }
 function speechDetectLoop(){
-  if(!analyser||!speechFreqData){requestAnimationFrame(speechDetectLoop);return;}
-  if(!autoDetectEnabled){requestAnimationFrame(speechDetectLoop);return;}
+  if(!analyser||!speechFreqData){setTimeout(speechDetectLoop,200);return;}
+  if(!autoDetectEnabled){setTimeout(speechDetectLoop,200);return;}
   analyser.getByteFrequencyData(speechFreqData);
   const N=speechFreqData.length;
   const binHz=audioCtx.sampleRate/analyser.fftSize;
@@ -847,11 +862,11 @@ function speechDetectLoop(){
   // 발화 중이 아닐 때만 기준선 업데이트 (최근 ~5초)
   if(!isSpeechActive){
     speechBaseArr.push(avgS);
-    if(speechBaseArr.length>300)speechBaseArr.shift();
+    if(speechBaseArr.length>150)speechBaseArr.shift();
   }
 
-  // 절대값 임계값으로 판정 (보정 기간 90프레임 ~1.5초 이후부터)
-  const detected=speechBaseArr.length>=90&&avgS>speechThreshold;
+  // 절대값 임계값으로 판정 (보정 기간 45프레임 ~1.5초 이후부터)
+  const detected=speechBaseArr.length>=45&&avgS>speechThreshold;
 
   // 현재 레벨 표시
   const curEl=document.getElementById('speech-cur-val');
@@ -868,7 +883,7 @@ function speechDetectLoop(){
     document.getElementById('speech-overlay').classList.remove('show');
     if(isRecording&&isMuted&&autoMuted){autoMuted=false;setMute(false);}
   }
-  requestAnimationFrame(speechDetectLoop);
+  setTimeout(speechDetectLoop,100);
 }
 
 // ══ 초기화 ═════════════════════════════════════════════════════════════
