@@ -12,7 +12,7 @@ body{background:#0B0F1E;color:#E8EDF7;font-family:system-ui,-apple-system,sans-s
 /* ══ 전체 레이아웃 ══ */
 .page-header{text-align:center;padding:20px 16px 14px;border-bottom:1px solid #1E2A45}
 .page-header h1{font-size:18px;font-weight:700;letter-spacing:-.5px}
-.page-layout{display:grid;grid-template-columns:220px 340px 1fr;gap:14px;padding:14px;align-items:start;max-width:1440px;margin:0 auto}
+.page-layout{display:grid;grid-template-columns:280px 340px 1fr;gap:14px;padding:14px;align-items:start;max-width:1440px;margin:0 auto}
 @media(max-width:1100px){.page-layout{grid-template-columns:1fr}}
 .card{background:#141929;border:1px solid #1E2A45;border-radius:14px;padding:18px 20px;margin-bottom:12px}
 .lbl{font-size:10px;letter-spacing:2px;color:#6B7A99;text-transform:uppercase;margin-bottom:5px}
@@ -20,7 +20,7 @@ body{background:#0B0F1E;color:#E8EDF7;font-family:system-ui,-apple-system,sans-s
 
 /* ══ 왼쪽: 시간표 패널 ══ */
 .schedule-panel{}
-.sched-clock{font-family:'Courier New',monospace;font-size:38px;font-weight:900;color:#E8EDF7;text-align:center;letter-spacing:2px;margin:4px 0}
+.sched-clock{font-family:'Courier New',monospace;font-size:76px;font-weight:900;color:#E8EDF7;text-align:center;letter-spacing:2px;margin:4px 0}
 .sched-date{font-size:12px;color:#6B7A99;text-align:center;margin-bottom:12px}
 .current-period-box{background:#1E2A45;border-radius:10px;padding:12px 14px;margin-bottom:12px}
 .cp-name{font-size:18px;font-weight:800;margin-bottom:4px}
@@ -45,7 +45,7 @@ body{background:#0B0F1E;color:#E8EDF7;font-family:system-ui,-apple-system,sans-s
 
 /* ══ 오른쪽: 화이트보드 ══ */
 .wb-panel{position:sticky;top:14px}
-.wb-panel .card{display:flex;flex-direction:column;height:calc(100vh - 100px);padding:14px 16px}
+.wb-panel .card{display:flex;flex-direction:column;height:calc(100vh - 100px);padding:0;overflow:hidden}
 .wb-header{font-size:13px;font-weight:700;margin-bottom:8px;color:#E8EDF7;display:flex;align-items:center;gap:6px;flex-shrink:0}
 .wb-toolbar{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;flex-shrink:0}
 .wc-btn{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .15s;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -59,6 +59,28 @@ body{background:#0B0F1E;color:#E8EDF7;font-family:system-ui,-apple-system,sans-s
 #whiteboard:focus{border-color:#818CF8}
 #whiteboard:empty:before{content:attr(data-placeholder);color:#C4C0A8;pointer-events:none;font-weight:400;font-size:20px}
 .wb-hint{font-size:10px;color:#3A4A6B;margin-top:5px;text-align:right;flex-shrink:0}
+
+/* ══ 타이머 ══ */
+.timer-section{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:18px 16px;border-bottom:1px solid #1E2A45;overflow:hidden;background:#0D1120;border-radius:14px 14px 0 0}
+.timer-display{font-family:'Courier New',monospace;font-size:clamp(88px,9vw,140px);font-weight:900;color:#E8EDF7;letter-spacing:6px;line-height:1;transition:color .3s,text-shadow .3s}
+.timer-display.running{color:#34D399;text-shadow:0 0 40px #34D39966}
+.timer-display.ended{color:#EF4444;text-shadow:0 0 40px #EF444466;animation:pulse 1s ease-in-out infinite}
+.timer-set{display:flex;align-items:center;gap:8px}
+.timer-unit{display:flex;flex-direction:column;align-items:center;gap:4px}
+.timer-unit label{font-size:11px;color:#6B7A99;letter-spacing:1px}
+.timer-input{font-family:'Courier New',monospace;font-size:32px;font-weight:700;color:#E8EDF7;background:#141929;border:1px solid #1E2A45;border-radius:8px;width:72px;text-align:center;padding:6px 4px;outline:none;-moz-appearance:textfield}
+.timer-input::-webkit-outer-spin-button,.timer-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.timer-input:focus{border-color:#818CF8;background:#1E2A45}
+.timer-input:disabled{color:#3A4A6B;background:#0B0F1E;cursor:default;border-color:#141929}
+.timer-sep{font-family:'Courier New',monospace;font-size:28px;font-weight:900;color:#3A4A6B;margin-bottom:16px}
+.timer-controls{display:flex;gap:8px}
+.timer-row{display:flex;align-items:center;gap:16px}
+.timer-btn{padding:8px 22px;border-radius:9px;border:none;cursor:pointer;font-size:13px;font-weight:700;transition:all .15s}
+.timer-start{background:linear-gradient(135deg,#34D399,#10B981);color:#fff;box-shadow:0 0 12px #34D39944}
+.timer-start.pausing{background:linear-gradient(135deg,#FBBF24,#F59E0B);box-shadow:0 0 12px #FBBF2444}
+.timer-reset{background:#1E2A45;color:#6B7A99}
+.timer-reset:hover{background:#253451;color:#E8EDF7}
+.wb-content{flex:1;display:flex;flex-direction:column;min-height:0;padding:10px 16px 12px}
 
 /* ══ 중앙: 소음측정기 ══ */
 .center-panel{display:flex;flex-direction:column;align-items:center}
@@ -370,19 +392,48 @@ tbody tr{border-bottom:1px solid #1E2A4540}
   <!-- ══ 오른쪽: 화이트보드 ══ -->
   <aside class="wb-panel">
     <div class="card">
-      <div class="wb-header">📋 교사 안내 화이트보드</div>
-      <div class="wb-toolbar">
-        <button class="wc-btn active" style="background:#1a1a2e;color:#1a1a2e" onclick="setWbColor(this,'#1a1a2e')" title="검정">●</button>
-        <button class="wc-btn" style="background:#1d4ed8" onclick="setWbColor(this,'#1d4ed8')" title="파랑">●</button>
-        <button class="wc-btn" style="background:#dc2626" onclick="setWbColor(this,'#dc2626')" title="빨강">●</button>
-        <button class="wc-btn" style="background:#15803d" onclick="setWbColor(this,'#15803d')" title="초록">●</button>
-        <button class="wb-tb-btn" id="wb-bold-btn" onclick="toggleWbBold()" style="font-weight:900">B</button>
-        <button class="wb-tb-btn" id="wb-size-btn" onclick="cycleWbSize()">크게</button>
-        <button class="wb-tb-btn wb-clear-btn" onclick="clearWb()">지우기</button>
+
+      <!-- 타이머 (1/3) -->
+      <div class="timer-section">
+        <div id="timer-display" class="timer-display">05:00</div>
+        <div class="timer-row">
+          <div class="timer-set">
+            <div class="timer-unit">
+              <input type="number" id="timer-min-inp" class="timer-input" value="5" min="0" max="40"
+                     oninput="onTimerMinInput(this)" onblur="onTimerMinBlur(this)">
+              <label>분</label>
+            </div>
+            <span class="timer-sep">:</span>
+            <div class="timer-unit">
+              <input type="number" id="timer-sec-inp" class="timer-input" value="0" min="0" max="59"
+                     oninput="onTimerSecInput(this)" onblur="onTimerSecBlur(this)">
+              <label>초</label>
+            </div>
+          </div>
+          <div class="timer-controls">
+            <button class="timer-btn timer-start" id="timer-start-btn" onclick="startTimer()">▶ 시작</button>
+            <button class="timer-btn timer-reset" onclick="resetTimer()">↺ 초기화</button>
+          </div>
+        </div>
       </div>
-      <div id="whiteboard" contenteditable="true" spellcheck="false"
-           data-placeholder="여기에 안내사항을 적어주세요..."></div>
-      <div class="wb-hint">내용은 자동 저장됩니다</div>
+
+      <!-- 화이트보드 (2/3) -->
+      <div class="wb-content">
+        <div class="wb-header">📋 교사 안내 화이트보드</div>
+        <div class="wb-toolbar">
+          <button class="wc-btn active" style="background:#1a1a2e;color:#1a1a2e" onclick="setWbColor(this,'#1a1a2e')" title="검정">●</button>
+          <button class="wc-btn" style="background:#1d4ed8" onclick="setWbColor(this,'#1d4ed8')" title="파랑">●</button>
+          <button class="wc-btn" style="background:#dc2626" onclick="setWbColor(this,'#dc2626')" title="빨강">●</button>
+          <button class="wc-btn" style="background:#15803d" onclick="setWbColor(this,'#15803d')" title="초록">●</button>
+          <button class="wb-tb-btn" id="wb-bold-btn" onclick="toggleWbBold()" style="font-weight:900">B</button>
+          <button class="wb-tb-btn" id="wb-size-btn" onclick="cycleWbSize()">크게</button>
+          <button class="wb-tb-btn wb-clear-btn" onclick="clearWb()">지우기</button>
+        </div>
+        <div id="whiteboard" contenteditable="true" spellcheck="false"
+             data-placeholder="여기에 안내사항을 적어주세요..."></div>
+        <div class="wb-hint">새로고침하면 초기화됩니다</div>
+      </div>
+
     </div>
   </aside>
 
@@ -431,7 +482,7 @@ function schedTick(){
   const now=new Date();
   // 시계 업데이트
   document.getElementById('sched-clock').textContent=
-    now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+    now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false});
   document.getElementById('sched-date').textContent=
     now.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
 
@@ -558,6 +609,78 @@ function playBeepLunch(){
       g.gain.setValueAtTime(0,T);g.gain.linearRampToValueAtTime(.4,T+.05);g.gain.exponentialRampToValueAtTime(.001,T+.6);
       o.start(T);o.stop(T+.65);
     });
+  }catch(e){}
+}
+
+// ══ 타이머 ═══════════════════════════════════════════════════════════════
+let timerMin=5,timerSec=0,timerRemain=300,timerRunning=false,timerDone=false;
+let timerIntervalId=null;
+function updateTimerDisplay(){
+  const m=Math.floor(timerRemain/60),s=timerRemain%60;
+  document.getElementById('timer-display').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+function setTimerInputs(disabled){
+  document.getElementById('timer-min-inp').disabled=disabled;
+  document.getElementById('timer-sec-inp').disabled=disabled;
+}
+function onTimerMinInput(el){
+  if(timerRunning)return;
+  timerMin=Math.max(0,Math.min(40,parseInt(el.value)||0));
+  timerRemain=timerMin*60+timerSec;updateTimerDisplay();
+}
+function onTimerMinBlur(el){
+  el.value=timerMin;
+}
+function onTimerSecInput(el){
+  if(timerRunning)return;
+  timerSec=Math.max(0,Math.min(59,parseInt(el.value)||0));
+  timerRemain=timerMin*60+timerSec;updateTimerDisplay();
+}
+function onTimerSecBlur(el){
+  el.value=timerSec;
+}
+function startTimer(){
+  if(timerRunning){
+    clearInterval(timerIntervalId);timerRunning=false;
+    setTimerInputs(false);
+    const b=document.getElementById('timer-start-btn');b.textContent='▶ 재개';b.classList.remove('pausing');
+    document.getElementById('timer-display').classList.remove('running');return;
+  }
+  if(timerRemain<=0)return;
+  timerDone=false;timerRunning=true;
+  setTimerInputs(true);
+  const b=document.getElementById('timer-start-btn');b.textContent='⏸ 일시정지';b.classList.add('pausing');
+  const disp=document.getElementById('timer-display');disp.classList.add('running');disp.classList.remove('ended');
+  timerIntervalId=setInterval(()=>{
+    timerRemain--;updateTimerDisplay();
+    if(timerRemain<=0){
+      clearInterval(timerIntervalId);timerRunning=false;timerDone=true;
+      setTimerInputs(false);
+      const b=document.getElementById('timer-start-btn');b.textContent='▶ 시작';b.classList.remove('pausing');
+      disp.classList.remove('running');disp.classList.add('ended');
+      playTimerBeep();
+    }
+  },1000);
+}
+function resetTimer(){
+  clearInterval(timerIntervalId);timerRunning=false;timerDone=false;
+  timerRemain=timerMin*60+timerSec;updateTimerDisplay();
+  setTimerInputs(false);
+  const b=document.getElementById('timer-start-btn');b.textContent='▶ 시작';b.classList.remove('pausing');
+  document.getElementById('timer-display').classList.remove('running','ended');
+}
+function playTimerBeep(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [[880,0],[880,0.45],[880,0.9],[1320,1.4]].forEach(([freq,delay])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=freq;o.type='sine';
+      const t=ctx.currentTime+delay;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.5,t+0.05);g.gain.linearRampToValueAtTime(0,t+0.35);
+      o.start(t);o.stop(t+0.4);
+    });
+    setTimeout(()=>ctx.close(),3000);
   }catch(e){}
 }
 
@@ -689,7 +812,7 @@ function startRecording(){
   document.getElementById('warn1-overlay').classList.remove('show');
   document.getElementById('warn2-overlay').classList.remove('show');
   document.getElementById('warn1-mini').classList.remove('show');
-  document.getElementById('mute-btn').classList.remove('active');
+  startTime=Date.now();isRecording=true;isMuted=false;
   document.getElementById('mute-indicator').classList.remove('visible');
   document.getElementById('main-btn').textContent='⏹ 측정 중지';
   document.getElementById('main-btn').classList.add('recording');
