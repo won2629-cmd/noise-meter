@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>소음 측정기</title>
+<link rel="icon" type="image/svg+xml" href="noise-meter-icon.svg">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0B0F1E;color:#E8EDF7;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;padding:0 0 40px;user-select:none}
+
+/* ══ 전체 레이아웃 ══ */
+.page-header{text-align:center;padding:20px 16px 14px;border-bottom:1px solid #1E2A45}
+.page-header h1{font-size:18px;font-weight:700;letter-spacing:-.5px}
+.page-layout{display:grid;grid-template-columns:280px 340px 1fr;gap:14px;padding:14px;align-items:start;max-width:1440px;margin:0 auto}
+@media(max-width:1100px){.page-layout{grid-template-columns:1fr}}
+.card{background:#141929;border:1px solid #1E2A45;border-radius:14px;padding:18px 20px;margin-bottom:12px}
+.lbl{font-size:10px;letter-spacing:2px;color:#6B7A99;text-transform:uppercase;margin-bottom:5px}
+.mono{font-family:'Courier New',monospace}
+
+/* ══ 왼쪽: 시간표 패널 ══ */
+.schedule-panel .card{padding:10px 12px}
+.sched-clock{font-family:'Courier New',monospace;font-size:76px;font-weight:900;color:#E8EDF7;text-align:center;letter-spacing:2px;margin:4px 0}
+.sched-date{font-size:12px;color:#6B7A99;text-align:center;margin-bottom:12px}
+.current-period-box{background:#1E2A45;border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.cp-name{font-size:18px;font-weight:800;margin-bottom:4px}
+.cp-time{font-size:12px;color:#9CA3AF;font-family:monospace;margin-bottom:8px}
+.cp-progress-track{height:6px;background:#0B0F1E;border-radius:6px;overflow:hidden;margin-bottom:6px}
+.cp-progress-fill{height:100%;border-radius:6px;transition:width .5s}
+.cp-remaining{font-size:11px;color:#6B7A99;font-family:monospace;text-align:right}
+
+.sched-list{display:flex;flex-direction:column;gap:4px}
+.sched-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid transparent;transition:all .2s}
+.sched-item.past{opacity:.35}
+.sched-item.current{border-color:currentColor;background:#ffffff08}
+.sched-item.current.class-type{color:#818CF8;border-color:#818CF833}
+.sched-item.current.break-type{color:#34D399;border-color:#34D39933}
+.sched-item.current.lunch-type{color:#FBBF24;border-color:#FBBF2433}
+.sched-item.current.prep-type{color:#A78BFA;border-color:#A78BFA33}
+.sched-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sched-name{font-size:13px;font-weight:700;flex:1}
+.sched-time{font-family:monospace;font-size:11px;color:#6B7A99}
+.current-pulse{animation:cpulse 1.5s ease-in-out infinite}
+@keyframes cpulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* ══ 오른쪽: 화이트보드 ══ */
+.wb-panel{position:sticky;top:14px}
+.wb-panel .card{display:flex;flex-direction:column;height:calc(100vh - 100px);padding:0;overflow:hidden}
+.wb-header{font-size:13px;font-weight:700;margin-bottom:8px;color:#E8EDF7;display:flex;align-items:center;gap:6px;flex-shrink:0}
+.wb-toolbar{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;flex-shrink:0}
+.wc-btn{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .15s;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.wc-btn.active{border-color:#fff;transform:scale(1.25);box-shadow:0 0 6px #ffffff88}
+.wb-tb-btn{padding:4px 10px;border-radius:6px;border:1px solid #1E2A45;background:#1E2A45;color:#9CA3AF;cursor:pointer;font-size:12px;font-weight:600;transition:all .15s}
+.wb-tb-btn:hover{background:#2E3F60;color:#E8EDF7}
+.wb-tb-btn.active-btn{background:#818CF833;border-color:#818CF8;color:#818CF8}
+.wb-clear-btn{margin-left:auto;color:#EF444499;border-color:#EF444433}
+.wb-clear-btn:hover{background:#EF444422;color:#EF4444}
+#whiteboard{background:#FFFEF7;color:#1a1a2e;border-radius:10px;flex:1;min-height:0;overflow-y:auto;padding:16px 18px;font-size:38px;font-weight:700;line-height:1.5;font-family:'Malgun Gothic','맑은 고딕',system-ui,sans-serif;cursor:text;outline:none;border:2px solid #E5E3D8;box-shadow:inset 0 2px 8px rgba(0,0,0,.08);word-break:break-all}
+#whiteboard:focus{border-color:#818CF8}
+#whiteboard:empty:before{content:attr(data-placeholder);color:#C4C0A8;pointer-events:none;font-weight:400;font-size:20px}
+.wb-hint{font-size:10px;color:#3A4A6B;margin-top:5px;text-align:right;flex-shrink:0}
+
+/* ══ 타이머 ══ */
+.timer-section{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:18px 16px;border-bottom:1px solid #1E2A45;overflow:hidden;background:#0D1120;border-radius:14px 14px 0 0}
+.timer-display{font-family:'Courier New',monospace;font-size:clamp(88px,9vw,140px);font-weight:900;color:#E8EDF7;letter-spacing:6px;line-height:1;transition:color .3s,text-shadow .3s}
+.timer-display.running{color:#34D399;text-shadow:0 0 40px #34D39966}
+.timer-display.ended{color:#EF4444;text-shadow:0 0 40px #EF444466;animation:pulse 1s ease-in-out infinite}
+.timer-set{display:flex;align-items:center;gap:8px}
+.timer-unit{display:flex;flex-direction:column;align-items:center;gap:4px}
+.timer-unit label{font-size:11px;color:#6B7A99;letter-spacing:1px}
+.timer-input{font-family:'Courier New',monospace;font-size:32px;font-weight:700;color:#E8EDF7;background:#141929;border:1px solid #1E2A45;border-radius:8px;width:72px;text-align:center;padding:6px 4px;outline:none;-moz-appearance:textfield}
+.timer-input::-webkit-outer-spin-button,.timer-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.timer-input:focus{border-color:#818CF8;background:#1E2A45}
+.timer-input:disabled{color:#3A4A6B;background:#0B0F1E;cursor:default;border-color:#141929}
+.timer-sep{font-family:'Courier New',monospace;font-size:28px;font-weight:900;color:#3A4A6B;margin-bottom:16px}
+.timer-controls{display:flex;gap:8px}
+.timer-row{display:flex;align-items:center;gap:16px}
+.timer-btn{padding:8px 22px;border-radius:9px;border:none;cursor:pointer;font-size:13px;font-weight:700;transition:all .15s}
+.timer-start{background:linear-gradient(135deg,#34D399,#10B981);color:#fff;box-shadow:0 0 12px #34D39944}
+.timer-start.pausing{background:linear-gradient(135deg,#FBBF24,#F59E0B);box-shadow:0 0 12px #FBBF2444}
+.timer-reset{background:#1E2A45;color:#6B7A99}
+.timer-reset:hover{background:#253451;color:#E8EDF7}
+.wb-content{flex:1;display:flex;flex-direction:column;min-height:0;padding:10px 16px 12px}
+
+/* ══ 중앙: 소음측정기 ══ */
+.center-panel{display:flex;flex-direction:column;align-items:center}
+.tabs{display:flex;gap:4px;width:100%;margin-bottom:12px}
+.tab{flex:1;padding:9px;border-radius:10px;border:1px solid #1E2A45;cursor:pointer;font-size:13px;font-weight:600;text-align:center;background:#141929;color:#6B7A99;transition:all .15s}
+.tab.active{background:#818CF822;border-color:#818CF8;color:#818CF8}
+#db-value{font-family:'Courier New',monospace;font-size:80px;font-weight:900;line-height:1;color:#34D399;text-shadow:0 0 24px #34D39966;transition:color .25s,text-shadow .25s;margin:6px 0 2px}
+#db-unit{font-family:'Courier New',monospace;color:#6B7A99;font-size:15px;margin-bottom:12px}
+.bar-track{height:9px;background:#1E2A45;border-radius:9px;overflow:hidden;margin-bottom:7px}
+#bar-fill{height:100%;width:0%;background:linear-gradient(to right,#34D399,#34D399);border-radius:9px;transition:width .1s,background .25s}
+.bar-scale{display:flex;justify-content:space-between;font-family:monospace;font-size:10px;color:#3A4A6B}
+#status-badge{display:inline-block;margin-top:10px;padding:5px 18px;border-radius:20px;font-size:13px;font-weight:600;background:#34D39922;border:1px solid #34D39966;color:#34D399;transition:all .3s}
+#mute-btn{width:100%;padding:15px;border-radius:12px;border:2px solid #4B5563;cursor:pointer;font-size:15px;font-weight:700;background:#1E2A45;color:#9CA3AF;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:10px}
+#mute-btn.active{background:linear-gradient(135deg,#7C3AED,#5B21B6);border-color:#7C3AED;color:#fff;box-shadow:0 0 30px #7C3AED66}
+#mute-btn .shortcut{font-size:10px;padding:2px 6px;border-radius:5px;background:#ffffff22;font-family:monospace;font-weight:400}
+#mute-indicator{display:none;margin-top:8px;padding:7px 12px;border-radius:8px;background:#7C3AED22;border:1px solid #7C3AED66;color:#A78BFA;font-size:12px;text-align:center}
+#mute-indicator.visible{display:block}
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;text-align:center}
+.stat-val{font-family:'Courier New',monospace;font-size:18px;font-weight:700;margin-top:4px}
+.controls-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ibtn{padding:5px 12px;border-radius:7px;border:none;cursor:pointer;font-family:monospace;font-size:12px;font-weight:600;background:#1E2A45;color:#6B7A99;transition:all .15s}
+.ibtn.active{background:#818CF8;color:#fff}
+.spacer{flex:1}
+#main-btn{padding:10px 26px;border-radius:11px;border:none;cursor:pointer;font-weight:700;font-size:14px;background:linear-gradient(135deg,#818CF8,#6366F1);color:#fff;box-shadow:0 0 20px #818CF866;transition:all .2s}
+#main-btn.recording{background:linear-gradient(135deg,#EF4444,#DC2626);box-shadow:0 0 20px #EF444466}
+#chart-card{display:none}
+canvas#chart{width:100%;height:150px;display:block}
+#log-card{display:none}
+.log-scroll{max-height:180px;overflow-y:auto}
+.log-scroll::-webkit-scrollbar{width:4px}
+.log-scroll::-webkit-scrollbar-thumb{background:#1E2A45;border-radius:4px}
+table{width:100%;border-collapse:collapse;font-family:'Courier New',monospace;font-size:12px}
+thead tr{border-bottom:1px solid #1E2A45;color:#6B7A99}
+th,td{padding:5px 8px;text-align:left}
+tbody tr{border-bottom:1px solid #1E2A4540}
+.level-badge{font-size:10px;padding:2px 6px;border-radius:5px;font-family:system-ui}
+.excluded-row td{opacity:.35}
+.excluded-tag{font-size:10px;padding:1px 5px;border-radius:4px;background:#7C3AED33;border:1px solid #7C3AED66;color:#A78BFA;font-family:system-ui}
+
+/* ══ 과거기록 ══ */
+#past-panel{display:none;width:100%}
+.session-item{background:#141929;border:1px solid #1E2A45;border-radius:12px;margin-bottom:8px;overflow:hidden}
+.session-header{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;transition:background .15s}
+.session-header:hover{background:#1E2A4566}
+.session-date{font-size:12px;font-weight:700;color:#E8EDF7}
+.session-meta{font-size:10px;color:#6B7A99;margin-top:2px}
+.session-badges{display:flex;gap:5px;margin-left:auto;align-items:center}
+.s-badge{font-family:monospace;font-size:10px;padding:2px 7px;border-radius:5px;font-weight:700}
+.session-body{display:none;border-top:1px solid #1E2A45}
+.session-body.open{display:block}
+.del-btn{padding:3px 8px;border-radius:6px;border:1px solid #EF444444;background:transparent;color:#EF4444;cursor:pointer;font-size:10px}
+.no-sessions{text-align:center;color:#3A4A6B;font-size:13px;padding:30px 0}
+.clear-all-btn{padding:7px 16px;border-radius:9px;border:1px solid #EF444444;background:transparent;color:#EF444499;cursor:pointer;font-size:11px;font-weight:600;margin-left:auto;display:block}
+
+/* ══ 별 보상 ══ */
+.star-section{background:#0A1018;border-radius:10px;padding:11px 12px;border:1px solid #1E2A45;margin-top:4px;flex-shrink:0}
+.star-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.star-header-lbl{display:flex;align-items:center;gap:5px;font-size:10px;color:#6B7A99;font-weight:600;letter-spacing:.5px}
+.star-reset-btn{background:none;border:none;cursor:pointer;font-size:11px;color:#3A4A6B;padding:0;line-height:1}
+.star-reset-btn:hover{color:#6B7A99}
+.star-display{display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:9px;line-height:1}
+.star-btns{display:flex;gap:6px}
+.star-minus{flex:1;padding:9px 0;border-radius:8px;border:1px solid #1E2A45;background:#141929;color:#94A3B8;font-size:20px;cursor:pointer;line-height:1;transition:background .1s}
+.star-minus:hover{background:#1E2A45}
+.star-plus{flex:1;padding:9px 0;border-radius:8px;border:none;background:#FBBF24;color:#1C1400;font-size:20px;font-weight:700;cursor:pointer;line-height:1;transition:opacity .15s}
+.star-plus:hover{opacity:.85}
+.star-restore{display:none;margin-top:6px}
+.star-restore-btn{width:100%;padding:7px 0;border-radius:8px;border:1px solid #6366F155;background:#6366F111;color:#818CF8;font-size:11px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.star-restore-btn:hover{background:#6366F122}
+
+/* ══ 1차 경고 미니 배지 ══ */
+#warn-badges-container{position:fixed;left:12px;top:50%;transform:translateY(-50%);z-index:800;display:flex;flex-direction:column;gap:5px;cursor:pointer}
+.warn-mini-badge{background:linear-gradient(145deg,#1C1400,#2D1F00);border:2px solid #F59E0B;border-radius:10px;padding:7px 10px;text-align:center;width:88px;box-shadow:0 0 16px #F59E0B33;animation:fadeIn .3s ease}
+.wmb-icon{font-size:20px;display:block}
+.wmb-num{font-size:11px;font-weight:900;color:#FFF5CC;margin-top:2px;letter-spacing:.5px}
+.wmb-more{font-size:12px;font-weight:900;color:#FFF5CC;text-align:center;padding:4px 0}
+.w1m-icon{font-size:22px}
+.w1m-label{font-size:13px;font-weight:900;color:#FFF5CC;margin-top:5px;line-height:1.3}
+.w1m-db{font-size:11px;color:#A07A20;margin-top:3px}
+
+/* ══ 1차 경고 ══ */
+#warn1-overlay{display:none;position:fixed;inset:0;z-index:915;background:rgba(0,0,0,.75);align-items:center;justify-content:center}
+#warn1-overlay.show{display:flex;animation:fadeIn .25s ease}
+.warn1-box{background:linear-gradient(145deg,#1C1400,#2D1F00);border:3px solid #F59E0B;border-radius:22px;padding:40px 48px;text-align:center;max-width:520px;width:90%;box-shadow:0 0 60px #F59E0B55;display:flex;flex-direction:column;align-items:center;gap:16px}
+.warn1-icon{font-size:60px;animation:pulse 1s ease-in-out infinite}
+.warn1-msg{font-size:28px;font-weight:900;color:#FFF5CC;line-height:1.35}
+.warn1-sub{font-size:15px;color:#A07A20}
+.warn1-btn{margin-top:6px;padding:11px 36px;border-radius:12px;border:1px solid #F59E0B55;cursor:pointer;font-weight:700;font-size:13px;background:#F59E0B22;color:#F59E0B}
+
+/* ══ 2차 경고 ══ */
+#warn2-overlay{display:none;position:fixed;inset:0;z-index:910;background:rgba(0,0,0,0.72);align-items:center;justify-content:center;text-align:center}
+#warn2-overlay.show{display:flex;animation:fadeIn .4s ease}
+.warn2-box{width:min(67vw,960px);min-height:min(58vh,380px);background:linear-gradient(145deg,#1a0000,#2d0000);border:2px solid #EF4444;border-radius:20px;padding:40px 48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:0 0 60px #EF444444}
+
+/* ══ 조용히 알림 ══ */
+#quiet-alert{display:none;position:fixed;inset:0;z-index:905;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;pointer-events:none}
+#quiet-alert.show{display:flex;animation:fadeIn .2s ease}
+.qa-box{background:linear-gradient(145deg,#12100A,#221800);border:2px solid #F97316;border-radius:20px;padding:36px 56px;display:flex;flex-direction:column;align-items:center;gap:18px;box-shadow:0 0 60px #F9731655}
+.qa-text{font-size:clamp(48px,6.5vw,88px);font-weight:900;color:#FFF;word-break:keep-all;text-shadow:0 0 40px #F9731688;letter-spacing:-1px}
+.qa-bar-wrap{width:100%;height:5px;background:#ffffff1a;border-radius:3px;overflow:hidden}
+.qa-bar{height:100%;width:100%;background:#F97316;border-radius:3px}
+.warn2-stage{font-size:14px;letter-spacing:4px;text-transform:uppercase;color:#EF4444;font-weight:700;margin-bottom:10px;border:1px solid #EF444444;padding:4px 18px;border-radius:20px;background:#EF444411}
+.warn2-msg{font-size:clamp(34px,6.5vw,76px);font-weight:900;color:#FFF;line-height:1.25;letter-spacing:-1px;text-shadow:0 0 60px #EF444455;max-width:900px;margin-bottom:20px;word-break:keep-all}
+.warn2-msg em{font-style:normal;color:#FCA5A5;display:block}
+.warn2-div{width:70px;height:3px;background:linear-gradient(to right,transparent,#EF4444,transparent);border-radius:2px;margin:4px auto 24px}
+.warn2-cnt{font-family:'Courier New',monospace;font-size:clamp(68px,13vw,140px);font-weight:900;color:#EF4444;text-shadow:0 0 60px #EF444488;letter-spacing:4px;line-height:1}
+.warn2-cnt-lbl{font-size:13px;letter-spacing:4px;color:#7F1D1D;text-transform:uppercase;margin-top:6px;margin-bottom:28px}
+.warn2-btn{padding:9px 26px;border-radius:9px;border:1px solid #7F1D1D;cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:#7F1D1D}
+
+/* ══ 수업 시작 알림 ══ */
+#class-notif{display:none;position:fixed;inset:0;z-index:920;background:#070B1A;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px}
+#class-notif.show{display:flex;animation:fadeIn .4s ease}
+.cn-badge{font-size:13px;letter-spacing:4px;text-transform:uppercase;color:#818CF8;font-weight:700;margin-bottom:12px;border:1px solid #818CF844;padding:4px 18px;border-radius:20px;background:#818CF811}
+.cn-msg{font-size:clamp(32px,6vw,70px);font-weight:900;color:#E8EDF7;line-height:1.3;letter-spacing:-1px;text-shadow:0 0 50px #818CF844;max-width:900px;margin-bottom:8px}
+.cn-msg em{font-style:normal;color:#A5B4FC;display:block}
+.cn-div{width:70px;height:3px;background:linear-gradient(to right,transparent,#818CF8,transparent);border-radius:2px;margin:8px auto 24px}
+.cn-cnt{font-family:'Courier New',monospace;font-size:clamp(80px,15vw,160px);font-weight:900;color:#818CF8;text-shadow:0 0 60px #818CF888;letter-spacing:4px;line-height:1}
+.cn-cnt-lbl{font-size:13px;letter-spacing:4px;color:#312E81;text-transform:uppercase;margin-top:8px;margin-bottom:30px}
+.cn-next{font-size:16px;color:#6B7A99;margin-bottom:32px}
+.cn-dismiss{padding:9px 26px;border-radius:9px;border:1px solid #312E81;cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:#4338CA;transition:all .2s}
+.cn-dismiss:hover{background:#312E8133;color:#818CF8}
+
+/* ══ 점심 알림 ══ */
+#lunch-notif{display:none;position:fixed;inset:0;z-index:920;background:#1A0800;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px}
+#lunch-notif.show{display:flex;animation:fadeIn .4s ease}
+.ln-icon{font-size:80px;animation:bounce 1s ease-in-out infinite;margin-bottom:16px}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.ln-msg{font-size:clamp(36px,7vw,80px);font-weight:900;color:#FEF3C7;line-height:1.3;text-shadow:0 0 60px #FBBF2444;max-width:900px;margin-bottom:10px}
+.ln-msg em{font-style:normal;color:#FCD34D;display:block}
+.ln-dismiss{margin-top:32px;padding:12px 36px;border-radius:12px;border:1px solid #92400E;cursor:pointer;font-size:14px;font-weight:700;background:#FBBF2422;color:#FBBF24;transition:all .2s}
+
+/* ══ PERMISSION ══ */
+#permission-overlay{position:fixed;inset:0;background:#0B0F1Eee;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:16px;text-align:center;padding:24px}
+#permission-overlay .icon{font-size:56px}
+#permission-overlay h2{font-size:19px;font-weight:700}
+#permission-overlay p{color:#6B7A99;font-size:13px;line-height:1.6;max-width:320px}
+#allow-btn{padding:13px 36px;border-radius:13px;border:none;cursor:pointer;font-weight:700;font-size:14px;background:linear-gradient(135deg,#818CF8,#6366F1);color:#fff;box-shadow:0 0 30px #818CF866;margin-top:6px}
+#perm-error{display:none;color:#EF4444;font-size:12px;background:#EF444422;border:1px solid #EF444466;border-radius:8px;padding:8px 14px;max-width:320px}
+
+/* ══ 범례 ══ */
+.legend{display:flex;flex-wrap:wrap;gap:7px;max-width:580px;margin:4px auto 0;padding:0 14px}
+.legend-item{display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:7px;background:#141929;border:1px solid #1E2A45;font-size:10px}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+/* ══ 칭찬 오버레이 ══ */
+#praise-overlay{display:none;position:fixed;inset:0;z-index:940;background:rgba(4,22,54,0.92);flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px}
+#praise-overlay.show{display:flex;animation:fadeIn .4s ease}
+.praise-star{font-size:88px;color:#7DD3FC;line-height:1}
+.praise-msg{font-size:clamp(36px,6vw,72px);font-weight:900;color:#BAE6FD;word-break:keep-all;line-height:1.3}
+.praise-sub{font-size:18px;color:#38BDF8}
+.praise-plus{display:inline-flex;align-items:center;gap:8px;background:#0C2744;border:2px solid #378ADD;border-radius:12px;padding:10px 24px}
+.praise-bar-wrap{width:220px;height:5px;background:#0C447C;border-radius:3px;overflow:hidden}
+.praise-bar{height:100%;width:100%;background:#38BDF8;border-radius:3px}
+#praise-panel-badge{display:none;background:#0C2744;border:2px solid #378ADD;border-radius:10px;padding:9px 12px;text-align:center;margin-bottom:8px}
+#praise-panel-badge.show{display:block;animation:fadeIn .3s ease}
+.ppb-star{font-family:'Courier New',monospace;font-size:26px;font-weight:900;color:#7DD3FC;line-height:1}
+.ppb-msg{font-size:13px;font-weight:900;color:#BAE6FD;margin-top:3px}
+.ppb-sub{font-size:9px;color:#38BDF8;margin-top:1px}
+.ppb-bar-wrap{height:3px;background:#0C447C;border-radius:2px;overflow:hidden;margin-top:7px}
+.ppb-bar{height:100%;width:100%;background:#38BDF8;border-radius:2px}
+.quiet-progress-row{background:#0A1018;border-radius:8px;padding:7px 10px;border:1px solid #1E2A45;margin-bottom:4px}
+.qp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.qp-label{font-size:9px;color:#2A3A55}
+.qp-time{font-family:'Courier New',monospace;font-size:10px;color:#38BDF8;font-weight:700}
+.qp-bar-track{height:14px;background:#0C2744;border-radius:7px;overflow:hidden}
+.qp-bar-fill{height:100%;width:0%;background:#38BDF8;border-radius:7px;transition:width .5s linear}
+.qp-hint{font-size:8px;color:#2A3A55;text-align:right;margin-top:4px}
+#level-korean{font-size:clamp(36px,4vw,64px);font-weight:900;color:#34D399;line-height:1;transition:color .5s,font-size .3s,text-shadow .5s;margin:10px 0 6px}
+
+/* ══ 발화 자동 감지 오버레이 ══ */
+#speech-overlay{display:none;position:fixed;inset:0;z-index:950;background:#F59E0B;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px}
+#speech-overlay.show{display:flex;animation:fadeIn .3s ease}
+.speech-icon{font-size:80px;margin-bottom:20px;animation:pulse 1s ease-in-out infinite}
+.speech-msg{font-size:clamp(32px,6vw,72px);font-weight:900;color:#1C1400;line-height:1.4;letter-spacing:-1px;text-shadow:0 2px 8px rgba(0,0,0,.12)}
+.speech-dots{display:flex;gap:10px;margin-top:28px}
+.speech-dots span{width:12px;height:12px;border-radius:50%;background:#1C1400;opacity:.4;animation:pdot 1.4s infinite ease-in-out}
+.speech-dots span:nth-child(2){animation-delay:.2s}
+.speech-dots span:nth-child(3){animation-delay:.4s}
+@keyframes pdot{0%,80%,100%{transform:scale(.8);opacity:.4}40%{transform:scale(1.3);opacity:1}}
+.speech-sens-row{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;background:#0B0F1E;border-radius:8px;border:1px solid #1E2A45}
+
+@keyframes fadeIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+</style>
+</head>
+<body>
+
+<!-- OVERLAYS -->
+<div id="permission-overlay">
+  <div class="icon">🎙</div>
+  <h2>마이크 접근 허용이 필요해요</h2>
+  <p>소음을 측정하려면 마이크 권한이 필요합니다.</p>
+  <button id="allow-btn" onclick="requestMic()">마이크 허용하고 시작하기</button>
+  <div id="perm-error">🔒 주소창 왼쪽 자물쇠 → 마이크 → 허용 후 새로고침</div>
+</div>
+
+<div id="warn1-overlay">
+  <div class="warn1-box">
+    <div class="warn1-icon">⚠️</div>
+    <div class="warn1-msg">소음 임계치에 도달했습니다.<br>더 조용히 해 주세요.</div>
+    <div class="warn1-sub" id="warn1-db">현재 — dB</div>
+    <button class="warn1-btn" onclick="dismissWarn1()">교사닫기</button>
+  </div>
+</div>
+
+<div id="warn-badges-container" onclick="clearWarnBadges()" title="클릭하여 모두 닫기"></div>
+
+<div id="warn2-overlay">
+  <div class="warn2-box">
+    <div class="warn2-stage">🔴 2차 경고</div>
+    <div class="warn2-msg">2차 소음 임계치에 도달해서<em>책읽기 시작합니다.</em></div>
+    <div class="warn2-div"></div>
+    <button class="warn2-btn" onclick="dismissWarn2()">교사 닫기</button>
+  </div>
+</div>
+
+<div id="quiet-alert">
+  <div class="qa-box">
+    <div class="qa-text">🤫 조용히 하세요</div>
+    <div class="qa-bar-wrap"><div id="qa-bar" class="qa-bar"></div></div>
+  </div>
+</div>
+
+<div id="class-notif">
+  <div class="cn-badge" id="cn-badge">⏰ 수업 시작 1분 전</div>
+  <div class="cn-msg">수업 시작합니다.<em id="cn-class-label">다음 수업 준비하고 바르게 앉아주세요.</em></div>
+  <div class="cn-div"></div>
+  <div class="cn-cnt" id="cn-cnt">01:00</div>
+  <div class="cn-cnt-lbl">수업 시작까지</div>
+  <div class="cn-next" id="cn-next"></div>
+  <button class="cn-dismiss" onclick="dismissClassNotif()">교사 닫기</button>
+</div>
+
+<div id="lunch-notif">
+  <div class="ln-icon">🍽</div>
+  <div class="ln-msg">급식 시간입니다.<em>모두 손 씻고 자리에 앉아 주세요.</em></div>
+  <button class="ln-dismiss" onclick="dismissLunchNotif()">확인</button>
+</div>
+
+<!-- 발화 자동 감지 오버레이 -->
+<div id="speech-overlay">
+  <div class="speech-icon">🎤</div>
+  <div class="speech-msg">선생님 말씀 중이니<br>집중해 주세요</div>
+  <div class="speech-dots"><span></span><span></span><span></span></div>
+</div>
+
+<!-- 칭찬 오버레이 -->
+<div id="praise-overlay">
+  <div class="praise-star">★</div>
+  <div class="praise-msg">참 잘했어요!</div>
+  <div class="praise-sub">5분간 조용히 수업을 들었어요</div>
+  <div class="praise-plus">
+    <span style="font-size:26px;color:#7DD3FC;line-height:1">★</span>
+    <span style="font-family:'Courier New',monospace;font-size:26px;font-weight:900;color:#7DD3FC;line-height:1">+1</span>
+  </div>
+  <div class="praise-bar-wrap"><div id="praise-bar" class="praise-bar"></div></div>
+</div>
+
+<!-- HEADER -->
+<div class="page-header">
+  <h1>🎙 소음 모니터 &amp; 기록기</h1>
+</div>
+
+<!-- 3단 레이아웃 -->
+<div class="page-layout">
+
+  <!-- ══ 왼쪽: 시간표 ══ -->
+  <aside class="schedule-panel">
+    <div class="card">
+
+      <!-- 칭찬 패널 뱃지 -->
+      <div id="praise-panel-badge">
+        <div class="ppb-star">★ +1</div>
+        <div class="ppb-msg">참 잘했어요!</div>
+        <div class="ppb-sub">5분간 조용히 했어요</div>
+        <div class="ppb-bar-wrap"><div id="praise-panel-bar" class="ppb-bar"></div></div>
+      </div>
+
+      <!-- 별 보상 (최상단) -->
+      <div class="star-section">
+        <div class="star-header">
+          <div class="star-header-lbl">
+            <span style="font-size:12px;color:#FBBF24">★</span>
+            <span>학급 칭찬 별</span>
+          </div>
+          <button class="star-reset-btn" onclick="resetStars()" title="초기화">↺</button>
+        </div>
+        <div class="star-display">
+          <span id="star-icon" style="font-size:42px;color:#FBBF24;line-height:1">★</span>
+          <span id="star-count" style="font-family:'Courier New',monospace;font-size:42px;font-weight:900;color:#FBBF24;line-height:1">0</span>
+        </div>
+        <div class="star-btns">
+          <button class="star-minus" onclick="manualStar(-1)" aria-label="별 빼기">−</button>
+          <button class="star-plus"  onclick="manualStar(1)"  aria-label="별 추가">+</button>
+        </div>
+        <div class="star-restore" id="star-restore">
+          <button class="star-restore-btn" onclick="doRestoreStar()">
+            ↩ 복구 — 실수였어요
+            <span id="star-restore-timer" style="font-family:monospace;font-size:10px;color:#4A5A7A">10</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 조용히 유지 진행바는 중앙 패널에 표시됩니다 -->
+
+      <div class="lbl">현재 시각</div>
+      <div class="sched-clock" id="sched-clock">00:00:00</div>
+      <div class="sched-date" id="sched-date"></div>
+      <div class="current-period-box" id="current-period-box">
+        <div class="cp-name" id="cp-name" style="color:#818CF8">—</div>
+        <div class="cp-time" id="cp-time">—</div>
+        <div class="cp-progress-track"><div class="cp-progress-fill" id="cp-progress-fill" style="background:#818CF8"></div></div>
+        <div class="cp-remaining" id="cp-remaining">—</div>
+      </div>
+      <div class="lbl" style="margin-bottom:8px">오늘 시간표</div>
+      <div class="sched-list" id="sched-list"></div>
+
+    </div>
+  </aside>
+
+  <!-- ══ 중앙: 소음 측정기 ══ -->
+  <main class="center-panel">
+    <div class="tabs" style="max-width:640px;width:100%">
+      <div class="tab active" onclick="showTab('measure')">📊 측정</div>
+      <div class="tab" onclick="showTab('history')">🗂 과거 기록</div>
+    </div>
+
+    <!-- 측정 탭 -->
+    <div id="measure-panel" style="width:100%;max-width:640px">
+      <div class="card" style="text-align:center">
+        <div class="lbl">현재 소음 수준</div>
+        <div id="db-value" style="display:none">—</div>
+        <div id="db-unit" style="display:none">dB</div>
+        <div id="level-korean">—</div>
+        <div class="quiet-progress-row" id="quiet-progress-row" style="display:none;text-align:left;margin-bottom:10px">
+          <div class="qp-header">
+            <span class="qp-label">조용히 유지 중</span>
+            <span class="qp-time" id="qp-time">00:00</span>
+          </div>
+          <div class="qp-bar-track"><div class="qp-bar-fill" id="qp-bar-fill"></div></div>
+          <div class="qp-hint">목표 5분 달성 시 ★+1</div>
+        </div>
+        <div class="bar-track" style="display:none"><div id="bar-fill"></div></div>
+        <div id="status-badge" style="display:none">측정 대기 중</div>
+      </div>
+      <div class="card">
+        <div class="lbl" style="margin-bottom:8px">교사 발화 제외</div>
+        <button id="mute-btn" onclick="toggleMute()">
+          <span id="mute-icon">🎤</span>
+          <span id="mute-label">교사 발화 중 (기록 제외)</span>
+          <span class="shortcut">Space</span>
+        </button>
+        <div id="mute-indicator">🟣 교사 발화 중 — 이 구간은 기록에서 제외됩니다</div>
+        <div class="speech-sens-row">
+          <span class="lbl" style="margin:0;white-space:nowrap">자동 감지</span>
+          <button id="speech-toggle-btn" onclick="toggleSpeechDetect()" style="padding:2px 10px;border-radius:6px;border:1px solid #1E2A45;background:#1E2A45;color:#6B7A99;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap">꺼짐</button>
+          <span class="lbl" style="margin:0 0 0 8px;white-space:nowrap">임계값</span>
+          <input type="range" min="30" max="100" value="65" oninput="speechThreshold=+this.value;document.getElementById('speech-thr-val').textContent=this.value" style="flex:1;accent-color:#818CF8">
+          <span id="speech-thr-val" style="font-family:monospace;font-size:11px;color:#FBBF24;min-width:20px">65</span>
+          <span class="lbl" style="margin:0 0 0 8px;white-space:nowrap">현재</span>
+          <span id="speech-cur-val" style="font-family:monospace;font-size:11px;color:#6B7A99;min-width:24px">—</span>
+        </div>
+      </div>
+      <div class="card" id="stats-card" style="display:none">
+        <div class="stats-grid">
+          <div><div class="lbl">최소</div><div class="stat-val" id="stat-min" style="color:#34D399">—</div></div>
+          <div><div class="lbl">최대</div><div class="stat-val" id="stat-max" style="color:#EF4444">—</div></div>
+          <div><div class="lbl">평균</div><div class="stat-val" id="stat-avg" style="color:#FBBF24">—</div></div>
+          <div><div class="lbl">경과</div><div class="stat-val" id="stat-time" style="color:#818CF8">00:00</div></div>
+          <div><div class="lbl">제외</div><div class="stat-val" id="stat-excl" style="color:#A78BFA">0회</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="controls-row">
+          <span class="lbl" style="margin:0">기록 간격</span>
+          <div style="display:flex;gap:5px">
+            <button class="ibtn" onclick="setIntervalSec(1,this)">1초</button>
+            <button class="ibtn" onclick="setIntervalSec(3,this)">3초</button>
+            <button class="ibtn" onclick="setIntervalSec(5,this)">5초</button>
+            <button class="ibtn active" onclick="setIntervalSec(10,this)">10초</button>
+          </div>
+          <span class="lbl" style="margin:0 0 0 6px">경고</span>
+          <div style="display:flex;align-items:center;gap:5px">
+            <button class="ibtn" onclick="changeThreshold(-5)">−</button>
+            <span id="threshold-val" style="font-family:monospace;font-size:13px;font-weight:700;color:#EF4444;min-width:42px;text-align:center">70 dB</span>
+            <button class="ibtn" onclick="changeThreshold(+5)">＋</button>
+          </div>
+          <div class="spacer"></div>
+          <button id="main-btn" onclick="toggleRecord()">▶ 측정 시작</button>
+        </div>
+      </div>
+      <div class="card" id="chart-card">
+        <div class="lbl" style="margin-bottom:8px">시간별 소음 추이</div>
+        <canvas id="chart"></canvas>
+      </div>
+      <div class="card" id="log-card">
+        <div class="lbl" id="log-title" style="margin-bottom:8px">측정 기록</div>
+        <div class="log-scroll">
+          <table><thead><tr><th>#</th><th>시각</th><th>경과</th><th>dB</th><th>수준</th></tr></thead>
+          <tbody id="log-body"></tbody></table>
+        </div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><span class="dot" style="background:#34D399"></span><span style="color:#34D399;font-family:monospace">~35</span><span style="color:#6B7A99">조용</span></div>
+        <div class="legend-item"><span class="dot" style="background:#A3E635"></span><span style="color:#A3E635;font-family:monospace">35–55</span><span style="color:#6B7A99">보통</span></div>
+        <div class="legend-item"><span class="dot" style="background:#FBBF24"></span><span style="color:#FBBF24;font-family:monospace">55–68</span><span style="color:#6B7A99">대화</span></div>
+        <div class="legend-item"><span class="dot" style="background:#F97316"></span><span style="color:#F97316;font-family:monospace">68–80</span><span style="color:#6B7A99">시끄러움</span></div>
+        <div class="legend-item"><span class="dot" style="background:#EF4444"></span><span style="color:#EF4444;font-family:monospace">80+</span><span style="color:#6B7A99">위험</span></div>
+      </div>
+    </div>
+
+    <!-- 과거기록 탭 -->
+    <div id="past-panel" style="width:100%;max-width:640px">
+      <div class="card" style="padding:14px 18px">
+        <div style="display:flex;align-items:center;margin-bottom:10px">
+          <span class="lbl" style="margin:0">저장된 세션</span>
+          <button class="clear-all-btn" onclick="clearAllSessions()">전체 삭제</button>
+        </div>
+        <div id="sessions-list"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ══ 오른쪽: 화이트보드 ══ -->
+  <aside class="wb-panel">
+    <div class="card">
+
+      <!-- 타이머 (1/3) -->
+      <div class="timer-section">
+        <div id="timer-display" class="timer-display">05:00</div>
+        <div class="timer-row">
+          <div class="timer-set">
+            <div class="timer-unit">
+              <input type="number" id="timer-min-inp" class="timer-input" value="5" min="0" max="40"
+                     oninput="onTimerMinInput(this)" onblur="onTimerMinBlur(this)">
+              <label>분</label>
+            </div>
+            <span class="timer-sep">:</span>
+            <div class="timer-unit">
+              <input type="number" id="timer-sec-inp" class="timer-input" value="0" min="0" max="59"
+                     oninput="onTimerSecInput(this)" onblur="onTimerSecBlur(this)">
+              <label>초</label>
+            </div>
+          </div>
+          <div class="timer-controls">
+            <button class="timer-btn timer-start" id="timer-start-btn" onclick="startTimer()">▶ 시작</button>
+            <button class="timer-btn timer-reset" onclick="resetTimer()">↺ 초기화</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 화이트보드 (2/3) -->
+      <div class="wb-content">
+        <div class="wb-header">📋 교사 안내 화이트보드</div>
+        <div class="wb-toolbar">
+          <button class="wc-btn active" style="background:#1a1a2e;color:#1a1a2e" onclick="setWbColor(this,'#1a1a2e')" title="검정">●</button>
+          <button class="wc-btn" style="background:#1d4ed8" onclick="setWbColor(this,'#1d4ed8')" title="파랑">●</button>
+          <button class="wc-btn" style="background:#dc2626" onclick="setWbColor(this,'#dc2626')" title="빨강">●</button>
+          <button class="wc-btn" style="background:#15803d" onclick="setWbColor(this,'#15803d')" title="초록">●</button>
+          <button class="wb-tb-btn" id="wb-bold-btn" onclick="toggleWbBold()" style="font-weight:900">B</button>
+          <button class="wb-tb-btn" id="wb-size-btn" onclick="cycleWbSize()">크게</button>
+          <button class="wb-tb-btn wb-clear-btn" onclick="clearWb()">지우기</button>
+        </div>
+        <div id="whiteboard" contenteditable="true" spellcheck="false"
+             data-placeholder="여기에 안내사항을 적어주세요..."></div>
+        <div class="wb-hint">새로고침하면 초기화됩니다</div>
+      </div>
+
+    </div>
+  </aside>
+
+</div><!-- /page-layout -->
+
+<script>
+// ══ 시간표 데이터 ══════════════════════════════════════════════════════════
+const SCHEDULE=[
+  {name:'1교시',  type:'class', h1:9, m1:0,  h2:9, m2:40},
+  {name:'쉬는시간',type:'break', h1:9, m1:40, h2:9, m2:50},
+  {name:'2교시',  type:'class', h1:9, m1:50, h2:10,m2:30},
+  {name:'쉬는시간',type:'break', h1:10,m1:30, h2:10,m2:40},
+  {name:'3교시',  type:'class', h1:10,m1:40, h2:11,m2:20},
+  {name:'쉬는시간',type:'break', h1:11,m1:20, h2:11,m2:30},
+  {name:'4교시',  type:'class', h1:11,m1:30, h2:12,m2:10},
+  {name:'점심시간',type:'lunch', h1:12,m1:10, h2:12,m2:55},
+  {name:'수업 준비',type:'prep',  h1:12,m1:55, h2:13,m2:0},
+  {name:'5교시',  type:'class', h1:13,m1:0,  h2:13,m2:40},
+  {name:'쉬는시간',type:'break', h1:13,m1:40, h2:13,m2:50},
+  {name:'6교시',  type:'class', h1:13,m1:50, h2:14,m2:30},
+];
+const TYPE_COLOR={class:'#818CF8',break:'#34D399',lunch:'#FBBF24',prep:'#A78BFA'};
+const TYPE_DOT  ={class:'#818CF8',break:'#34D399',lunch:'#FBBF24',prep:'#A78BFA'};
+
+const toSec=(h,m,s=0)=>h*3600+m*60+(s||0);
+const toSecP=p=>({s:toSec(p.h1,p.m1),e:toSec(p.h2,p.m2)});
+const nowSec=()=>{const n=new Date();return toSec(n.getHours(),n.getMinutes(),n.getSeconds())};
+
+// 수업 시작 1분 전 알림 (쉬는시간/점심 끝나기 1분 전)
+const CLASS_NOTIFS=[
+  {sec:toSec(8,59), label:'1교시'},
+  {sec:toSec(9,49), label:'2교시'},
+  {sec:toSec(10,39),label:'3교시'},
+  {sec:toSec(11,29),label:'4교시'},
+  {sec:toSec(12,59),label:'5교시'},
+  {sec:toSec(13,49),label:'6교시'},
+];
+const LUNCH_SEC=toSec(12,10);
+
+let notifiedSet=new Set(), lastPeriodIdx=-99;
+let cnCountdownId=null, cnSec=60, cnActive=false;
+
+// ── 스케줄 체크 (매초) ──────────────────────────────────────────────────
+function schedTick(){
+  const s=nowSec();
+  const now=new Date();
+  // 시계 업데이트
+  document.getElementById('sched-clock').textContent=
+    now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false});
+  document.getElementById('sched-date').textContent=
+    now.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+
+  // 알림 체크
+  CLASS_NOTIFS.forEach(n=>{
+    if(s===n.sec&&!notifiedSet.has(n.sec)){notifiedSet.add(n.sec);showClassNotif(n.label);}
+  });
+  if(s===LUNCH_SEC&&!notifiedSet.has(LUNCH_SEC)){notifiedSet.add(LUNCH_SEC);showLunchNotif();}
+
+  // 현재 교시 찾기
+  const idx=SCHEDULE.findIndex(p=>{const {s:ps,e:pe}=toSecP(p);return s>=ps&&s<pe;});
+  if(idx!==lastPeriodIdx){lastPeriodIdx=idx;renderSchedList(idx);}
+
+  // 현재 교시 진행 상황 업데이트
+  if(idx>=0){
+    const p=SCHEDULE[idx];
+    const {s:ps,e:pe}=toSecP(p);
+    const pct=((s-ps)/(pe-ps))*100;
+    const rem=pe-s;
+    const rm=Math.floor(rem/60),rs=rem%60;
+    const el=document.getElementById('cp-progress-fill');
+    const re=document.getElementById('cp-remaining');
+    if(el)el.style.width=pct+'%';
+    if(re)re.textContent=`${rm}분 ${String(rs).padStart(2,'0')}초 남음`;
+  }else{
+    const re=document.getElementById('cp-remaining');
+    if(re)re.textContent='';
+  }
+}
+
+// ── 시간표 목록 렌더링 ──────────────────────────────────────────────────
+function renderSchedList(curIdx){
+  const list=document.getElementById('sched-list');
+  list.innerHTML=SCHEDULE.map((p,i)=>{
+    if(p.type==='break')return '';
+    const {s:ps,e:pe}=toSecP(p);
+    const state=i<curIdx?'past':i===curIdx?'current':'future';
+    const color=TYPE_COLOR[p.type];
+    const sh=String(p.h1).padStart(2,'0'),sm=String(p.m1).padStart(2,'0');
+    const eh=String(p.h2).padStart(2,'0'),em=String(p.m2).padStart(2,'0');
+    const pulseClass=state==='current'?' current-pulse':'';
+    return `<div class="sched-item ${state} ${p.type}-type" style="${state==='current'?'color:'+color:''}">
+      <span class="sched-dot${pulseClass}" style="background:${state==='future'?'#1E2A45':color}"></span>
+      <span class="sched-name" style="${state==='past'?'text-decoration:line-through':''}">${p.name}</span>
+      <span class="sched-time">${sh}:${sm}~${eh}:${em}</span>
+    </div>`;
+  }).join('');
+
+  // 현재 교시 정보 업데이트
+  const box=document.getElementById('current-period-box');
+  if(curIdx>=0){
+    const p=SCHEDULE[curIdx];
+    const color=TYPE_COLOR[p.type];
+    const sh=String(p.h1).padStart(2,'0'),sm=String(p.m1).padStart(2,'0');
+    const eh=String(p.h2).padStart(2,'0'),em=String(p.m2).padStart(2,'0');
+    document.getElementById('cp-name').textContent=p.name;
+    document.getElementById('cp-name').style.color=color;
+    document.getElementById('cp-time').textContent=`${sh}:${sm} ~ ${eh}:${em}`;
+    document.getElementById('cp-progress-fill').style.background=color;
+    box.style.borderLeft=`3px solid ${color}`;
+  }else{
+    document.getElementById('cp-name').textContent='수업 외 시간';
+    document.getElementById('cp-name').style.color='#6B7A99';
+    document.getElementById('cp-time').textContent='—';
+    document.getElementById('cp-progress-fill').style.width='0%';
+    box.style.borderLeft='3px solid #1E2A45';
+  }
+}
+
+// ── 수업 시작 알림 ──────────────────────────────────────────────────────
+function showClassNotif(label){
+  cnSec=60; cnActive=true;
+  document.getElementById('cn-class-label').textContent='다음 수업 준비하고 바르게 앉아주세요.';
+  document.getElementById('cn-badge').textContent=`⏰ ${label} 1분 전`;
+  document.getElementById('cn-next').textContent=`곧 ${label}이(가) 시작됩니다`;
+  document.getElementById('cn-cnt').textContent='01:00';
+  document.getElementById('class-notif').classList.add('show');
+  playBeepClass();
+  clearInterval(cnCountdownId);
+  cnCountdownId=setInterval(()=>{
+    if(!cnActive)return;
+    cnSec--;
+    const m=Math.floor(cnSec/60),s=cnSec%60;
+    document.getElementById('cn-cnt').textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    if(cnSec<=0){clearInterval(cnCountdownId);cnActive=false;dismissClassNotif();}
+  },1000);
+}
+function dismissClassNotif(){
+  cnActive=false;
+  document.getElementById('class-notif').classList.remove('show');
+}
+
+// ── 점심 알림 ──────────────────────────────────────────────────────────
+function showLunchNotif(){
+  document.getElementById('lunch-notif').classList.add('show');
+  playBeepLunch();
+  setTimeout(()=>dismissLunchNotif(),15000); // 15초 후 자동 닫기
+}
+function dismissLunchNotif(){
+  document.getElementById('lunch-notif').classList.remove('show');
+}
+
+// ── 알림 소리 ──────────────────────────────────────────────────────────
+function playBeepClass(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [[523,.0],[659,.2],[784,.4],[1047,.65]].forEach(([f,t])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=f;o.type='sine';
+      const T=ctx.currentTime+t;
+      g.gain.setValueAtTime(0,T);g.gain.linearRampToValueAtTime(.4,T+.05);g.gain.exponentialRampToValueAtTime(.001,T+.5);
+      o.start(T);o.stop(T+.55);
+    });
+  }catch(e){}
+}
+function playBeepLunch(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [[784,.0],[659,.25],[523,.5]].forEach(([f,t])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=f;o.type='sine';
+      const T=ctx.currentTime+t;
+      g.gain.setValueAtTime(0,T);g.gain.linearRampToValueAtTime(.4,T+.05);g.gain.exponentialRampToValueAtTime(.001,T+.6);
+      o.start(T);o.stop(T+.65);
+    });
+  }catch(e){}
+}
+
+// ══ 타이머 ═══════════════════════════════════════════════════════════════
+let timerMin=5,timerSec=0,timerRemain=300,timerRunning=false,timerDone=false;
+let timerIntervalId=null;
+function updateTimerDisplay(){
+  const m=Math.floor(timerRemain/60),s=timerRemain%60;
+  document.getElementById('timer-display').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+function setTimerInputs(disabled){
+  document.getElementById('timer-min-inp').disabled=disabled;
+  document.getElementById('timer-sec-inp').disabled=disabled;
+}
+function onTimerMinInput(el){
+  if(timerRunning)return;
+  timerMin=Math.max(0,Math.min(40,parseInt(el.value)||0));
+  timerRemain=timerMin*60+timerSec;updateTimerDisplay();
+}
+function onTimerMinBlur(el){
+  el.value=timerMin;
+}
+function onTimerSecInput(el){
+  if(timerRunning)return;
+  timerSec=Math.max(0,Math.min(59,parseInt(el.value)||0));
+  timerRemain=timerMin*60+timerSec;updateTimerDisplay();
+}
+function onTimerSecBlur(el){
+  el.value=timerSec;
+}
+function startTimer(){
+  if(timerRunning){
+    clearInterval(timerIntervalId);timerRunning=false;
+    setTimerInputs(false);
+    const b=document.getElementById('timer-start-btn');b.textContent='▶ 재개';b.classList.remove('pausing');
+    document.getElementById('timer-display').classList.remove('running');return;
+  }
+  if(timerRemain<=0)return;
+  timerDone=false;timerRunning=true;
+  setTimerInputs(true);
+  const b=document.getElementById('timer-start-btn');b.textContent='⏸ 일시정지';b.classList.add('pausing');
+  const disp=document.getElementById('timer-display');disp.classList.add('running');disp.classList.remove('ended');
+  timerIntervalId=setInterval(()=>{
+    timerRemain--;updateTimerDisplay();
+    if(timerRemain<=0){
+      clearInterval(timerIntervalId);timerRunning=false;timerDone=true;
+      setTimerInputs(false);
+      const b=document.getElementById('timer-start-btn');b.textContent='▶ 시작';b.classList.remove('pausing');
+      disp.classList.remove('running');disp.classList.add('ended');
+      playTimerBeep();
+    }
+  },1000);
+}
+function resetTimer(){
+  clearInterval(timerIntervalId);timerRunning=false;timerDone=false;
+  timerRemain=timerMin*60+timerSec;updateTimerDisplay();
+  setTimerInputs(false);
+  const b=document.getElementById('timer-start-btn');b.textContent='▶ 시작';b.classList.remove('pausing');
+  document.getElementById('timer-display').classList.remove('running','ended');
+}
+function playTimerBeep(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [[880,0],[880,0.45],[880,0.9],[1320,1.4]].forEach(([freq,delay])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=freq;o.type='sine';
+      const t=ctx.currentTime+delay;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.5,t+0.05);g.gain.linearRampToValueAtTime(0,t+0.35);
+      o.start(t);o.stop(t+0.4);
+    });
+    setTimeout(()=>ctx.close(),3000);
+  }catch(e){}
+}
+
+// ══ 별 보상 ═════════════════════════════════════════════════════════════
+function updateStarDisplay(){
+  const cnt=document.getElementById('star-count');
+  const ico=document.getElementById('star-icon');
+  cnt.textContent=starCount;
+  const abs=Math.abs(starCount);
+  const sz=abs>=100?'28px':abs>=10?'36px':'42px';
+  cnt.style.fontSize=sz;
+  ico.style.fontSize=sz;
+  const color=starCount<0?'#EF4444':'#FBBF24';
+  cnt.style.color=color;
+  ico.style.color=color;
+}
+function addWarnBadge(){
+  warnDismissCount++;
+  renderWarnBadges();
+}
+function renderWarnBadges(){
+  const container=document.getElementById('warn-badges-container');
+  container.innerHTML='';
+  const show=Math.min(warnDismissCount,6);
+  for(let i=0;i<show;i++){
+    const b=document.createElement('div');
+    b.className='warn-mini-badge';
+    b.innerHTML=`<span class="wmb-icon">⚠️</span><div class="wmb-num">${i+1}차 경고</div>`;
+    container.appendChild(b);
+  }
+  if(warnDismissCount>6){
+    const more=document.createElement('div');
+    more.className='warn-mini-badge';
+    more.innerHTML=`<div class="wmb-more">+${warnDismissCount-6}회 더</div>`;
+    container.appendChild(more);
+  }
+}
+function clearWarnBadges(){warnDismissCount=0;document.getElementById('warn-badges-container').innerHTML='';}
+function manualStar(d){
+  starCount=Math.min(999,starCount+d);
+  updateStarDisplay();
+}
+function resetStars(){
+  if(starCount===0||confirm('별을 초기화할까요?')){starCount=0;updateStarDisplay();hideStarRestore();}
+}
+function deductStar(){
+  starCount=starCount-1;
+  updateStarDisplay();
+  showStarRestore();
+}
+function showStarRestore(){
+  hideStarRestore();
+  let cd=10;
+  document.getElementById('star-restore').style.display='block';
+  document.getElementById('star-restore-timer').textContent=cd;
+  starRestoreInterval=setInterval(()=>{
+    cd--;
+    document.getElementById('star-restore-timer').textContent=cd;
+    if(cd<=0){clearInterval(starRestoreInterval);document.getElementById('star-restore').style.display='none';}
+  },1000);
+}
+function hideStarRestore(){
+  clearInterval(starRestoreInterval);
+  document.getElementById('star-restore').style.display='none';
+}
+function doRestoreStar(){
+  starCount=Math.min(999,starCount+1);
+  updateStarDisplay();
+  hideStarRestore();
+}
+
+// ══ 5분 칭찬 타이머 ════════════════════════════════════════════════════
+function updateQuietProgress(){
+  const pct=Math.min(quietSec/PRAISE_SEC*100,100);
+  const f=document.getElementById('qp-bar-fill');
+  if(f)f.style.width=pct+'%';
+  const t=document.getElementById('qp-time');
+  if(t){const m=Math.floor(quietSec/60),s=quietSec%60;t.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
+}
+function resetQuietTimer(){
+  quietSec=0;updateQuietProgress();
+}
+function startPraiseTimer(){
+  clearInterval(praiseIntervalId);
+  quietSec=0;
+  document.getElementById('quiet-progress-row').style.display='block';
+  updateQuietProgress();
+  praiseIntervalId=setInterval(()=>{
+    if(!isRecording||warnShowing)return;
+    quietSec++;updateQuietProgress();
+    if(quietSec>=PRAISE_SEC){
+      quietSec=0;updateQuietProgress();
+      showPraiseOverlay();
+    }
+  },1000);
+}
+function stopPraiseTimer(){
+  clearInterval(praiseIntervalId);praiseIntervalId=null;
+  quietSec=0;
+  document.getElementById('quiet-progress-row').style.display='none';
+  document.getElementById('praise-overlay').classList.remove('show');
+  document.getElementById('praise-panel-badge').classList.remove('show');
+  clearTimeout(praiseDismissTimer);
+}
+function showPraiseOverlay(){
+  starCount=Math.min(999,starCount+1);updateStarDisplay();
+  const ov=document.getElementById('praise-overlay');
+  ov.classList.add('show');
+  const bar=document.getElementById('praise-bar');
+  bar.style.transition='none';bar.style.width='100%';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{bar.style.transition='width 4s linear';bar.style.width='0%';}));
+  const pb=document.getElementById('praise-panel-badge');
+  pb.classList.add('show');
+  const pbar=document.getElementById('praise-panel-bar');
+  pbar.style.transition='none';pbar.style.width='100%';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{pbar.style.transition='width 5s linear';pbar.style.width='0%';}));
+  clearTimeout(praiseDismissTimer);
+  praiseDismissTimer=setTimeout(()=>{ov.classList.remove('show');pb.classList.remove('show');},4000);
+}
+
+// ══ 화이트보드 ═════════════════════════════════════════════════════════
+let wbColor='#1a1a2e', wbBold=true, wbSize=1;
+const WB_SIZES=[28,38,48];
+const WB_SIZE_LABELS=['보통','크게','매우크게'];
+
+function setWbColor(btn,color){
+  wbColor=color;
+  document.querySelectorAll('.wc-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('whiteboard').focus();
+  try{document.execCommand('foreColor',false,color);}catch(e){}
+}
+function toggleWbBold(){
+  wbBold=!wbBold;
+  const wb=document.getElementById('whiteboard');
+  wb.style.fontWeight=wbBold?'700':'400';
+  document.getElementById('wb-bold-btn').classList.toggle('active-btn',wbBold);
+  wb.focus();
+}
+function cycleWbSize(){
+  wbSize=(wbSize+1)%3;
+  document.getElementById('whiteboard').style.fontSize=WB_SIZES[wbSize]+'px';
+  document.getElementById('wb-size-btn').textContent=WB_SIZE_LABELS[wbSize];
+}
+function clearWb(){
+  if(confirm('화이트보드를 지울까요?')){
+    document.getElementById('whiteboard').innerHTML='';
+  }
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const wb=document.getElementById('whiteboard');
+  wb.style.fontSize=WB_SIZES[wbSize]+'px';
+  wb.style.fontWeight='700';
+  document.getElementById('wb-bold-btn').classList.add('active-btn');
+  document.getElementById('wb-size-btn').textContent=WB_SIZE_LABELS[wbSize];
+  updateStarDisplay();
+});
+
+// ══ 소음측정기 ═════════════════════════════════════════════════════════
+let audioCtx,analyser,stream;
+let rafId,timerId,logTimerId,warnCheckId,countdownId;
+let isRecording=false,isMuted=false,sampleSec=10,startTime=0;
+let allDb=[],logRows=[],chartPoints=[],excludeCount=0;
+let threshold=70,overCount=0,warnStage=0,warnShowing=false;
+let quietCount=0,quietCooldown=false;
+let countdownSec=600,countdownActive=false;
+let warn1Count=0,warn2Count=0;
+let sessions=[];
+let displayDb=0;
+let thresholdBeepCooldown=false;
+let koreanLevelIntervalId=null;
+const KOREAN_LEVELS=[
+  {max:60, text:'조용함',   color:'#34D399'},
+  {max:70, text:'보통',     color:'#FBBF24'},
+  {max:Infinity, text:'시끄러움', color:'#EF4444'},
+];
+function updateKoreanLevel(){
+  const lv=KOREAN_LEVELS.find(l=>displayDb<l.max)||KOREAN_LEVELS[KOREAN_LEVELS.length-1];
+  const el=document.getElementById('level-korean');
+  if(!el)return;
+  el.textContent=lv.text;
+  el.style.color=lv.color;
+  el.style.textShadow=`0 0 24px ${lv.color}55`;
+  el.style.fontSize='clamp(42px,5vw,72px)';
+}
+// ── 별 보상 ──
+let starCount=5, starRestoreInterval=null, warnDismissCount=0;
+// ── 5분 칭찬 타이머 ──
+let quietSec=0, praiseIntervalId=null, praiseDismissTimer=null;
+const PRAISE_SEC=300;
+
+// ── 발화 자동 감지 ──────────────────────────────────────────────────────
+let speechOnset=0,speechRelease=0,isSpeechActive=false,autoMuted=false;
+let speechFreqData=null,speechThreshold=65,autoDetectEnabled=false;
+let speechBaseline=0,speechBaseArr=[];
+const SPEECH_LO=300,SPEECH_HI=3400,SPEECH_ON=8,SPEECH_OFF=40;
+
+const LEVELS=[
+  {max:35,color:"#34D399",label:"매우 조용"},
+  {max:55,color:"#A3E635",label:"조용함"},
+  {max:68,color:"#FBBF24",label:"보통"},
+  {max:80,color:"#F97316",label:"시끄러움"},
+  {max:Infinity,color:"#EF4444",label:"위험 수준"},
+];
+const getLevel=db=>LEVELS.find(l=>db<l.max);
+
+function showTab(t){
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['measure','history'][i]===t));
+  document.getElementById('measure-panel').style.display=t==='measure'?'block':'none';
+  document.getElementById('past-panel').style.display=t==='history'?'block':'none';
+  if(t==='history')renderSessions();
+}
+
+async function requestMic(){
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+    document.getElementById('permission-overlay').style.display='none';
+    initAudio();
+  }catch(e){document.getElementById('perm-error').style.display='block';}
+}
+function initAudio(){
+  audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  analyser=audioCtx.createAnalyser();analyser.fftSize=2048;
+  analyser.smoothingTimeConstant=0.5;
+  audioCtx.createMediaStreamSource(stream).connect(analyser);
+  speechFreqData=new Uint8Array(analyser.frequencyBinCount);
+  speechDetectLoop();
+}
+let _timeDomainBuf=null;
+function readDb(){
+  if(!analyser)return 0;
+  if(!_timeDomainBuf||_timeDomainBuf.length!==analyser.fftSize)
+    _timeDomainBuf=new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(_timeDomainBuf);
+  let s=0;for(let i=0;i<_timeDomainBuf.length;i++)s+=_timeDomainBuf[i]**2;
+  const rms=Math.sqrt(s/_timeDomainBuf.length);
+  return rms>0?Math.max(0,Math.min(100,20*Math.log10(rms)+90)):0;
+}
+function tick(){
+  const db=Math.round(readDb()*10)/10;
+  displayDb=displayDb*0.92+db*0.08;
+  const shown=Math.round(displayDb*10)/10;
+
+  // 임계치 경고는 checkThreshold()에서 누적 방식으로 처리
+  const lv=getLevel(shown);
+  const el=document.getElementById('db-value');
+  el.textContent=shown.toFixed(1);
+  if(isMuted){el.style.color='#A78BFA';el.style.textShadow='0 0 24px #7C3AED66';document.getElementById('bar-fill').style.background='linear-gradient(to right,#7C3AED,#A78BFA)';}
+  else{el.style.color=lv.color;el.style.textShadow=`0 0 24px ${lv.color}66`;document.getElementById('bar-fill').style.background=`linear-gradient(to right,#34D399,${lv.color})`;}
+  document.getElementById('bar-fill').style.width=Math.min(100,shown)+'%';
+  const badge=document.getElementById('status-badge');
+  if(isMuted){badge.textContent='🎤 교사 발화 중 (제외)';badge.style.color='#A78BFA';badge.style.background='#7C3AED22';badge.style.border='1px solid #7C3AED55';}
+  else{badge.textContent=lv.label;badge.style.color=lv.color;badge.style.background=lv.color+'22';badge.style.border=`1px solid ${lv.color}55`;}
+  rafId=requestAnimationFrame(tick);
+}
+function setMute(on){
+  if(isMuted===on)return;
+  isMuted=on;
+  const btn=document.getElementById('mute-btn'),ind=document.getElementById('mute-indicator');
+  if(isMuted){btn.classList.add('active');ind.classList.add('visible');document.getElementById('mute-icon').textContent='🔴';document.getElementById('mute-label').textContent='교사 발화 중 — 기록 제외 중';}
+  else{btn.classList.remove('active');ind.classList.remove('visible');document.getElementById('mute-icon').textContent='🎤';document.getElementById('mute-label').textContent='교사 발화 중 (기록 제외)';}
+}
+function toggleMute(){autoMuted=false;setMute(!isMuted);}
+document.addEventListener('keydown',e=>{if(e.code==='Space'&&e.target===document.body){e.preventDefault();if(isRecording)toggleMute();}});
+const fmt=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+function toggleRecord(){if(!isRecording)startRecording();else stopRecording();}
+function startRecording(){
+  allDb=[];logRows=[];chartPoints=[];excludeCount=0;warn1Count=0;warn2Count=0;
+  overCount=0;warnShowing=false;countdownActive=false;warnStage=0;
+  quietCount=0;quietCooldown=false;
+  document.getElementById('log-body').innerHTML='';
+  document.getElementById('warn1-overlay').classList.remove('show');
+  document.getElementById('warn2-overlay').classList.remove('show');
+  clearWarnBadges();warnDismissCount=0;
+  startTime=Date.now();isRecording=true;isMuted=false;thresholdBeepCooldown=false;
+  startPraiseTimer();
+  updateKoreanLevel();
+  koreanLevelIntervalId=setInterval(updateKoreanLevel,3000);
+  document.getElementById('mute-indicator').classList.remove('visible');
+  document.getElementById('main-btn').textContent='⏹ 측정 중지';
+  document.getElementById('main-btn').classList.add('recording');
+  document.getElementById('stats-card').style.display='block';
+  document.getElementById('chart-card').style.display='block';
+  document.getElementById('log-card').style.display='block';
+  rafId=requestAnimationFrame(tick);
+  timerId=setInterval(()=>{document.getElementById('stat-time').textContent=fmt(Math.floor((Date.now()-startTime)/1000));},500);
+  warnCheckId=setInterval(checkThreshold,1000);
+  logTimerId=setInterval(()=>{
+    const db=Math.round(readDb()*10)/10;
+    const sec=Math.floor((Date.now()-startTime)/1000);
+    const ts=new Date().toLocaleTimeString('ko-KR');
+    const excluded=isMuted;
+    if(excluded)excludeCount++;else allDb.push(db);
+    const vals=allDb;
+    if(vals.length>0){
+      document.getElementById('stat-min').textContent=Math.min(...vals).toFixed(1);
+      document.getElementById('stat-max').textContent=Math.max(...vals).toFixed(1);
+      document.getElementById('stat-avg').textContent=(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1);
+    }
+    document.getElementById('stat-excl').textContent=excludeCount+'회';
+    chartPoints.push({sec,db,excluded});if(chartPoints.length>120)chartPoints.shift();
+    drawChart();
+    const lv=getLevel(db);logRows.push({ts,sec,db,excluded});
+    const tbody=document.getElementById('log-body');
+    const tr=document.createElement('tr');
+    if(excluded)tr.classList.add('excluded-row');
+    tr.innerHTML=`<td style="color:#3A4A6B">${logRows.length}</td><td>${ts}</td><td style="color:#6B7A99;font-family:monospace">${fmt(sec)}</td><td style="color:${excluded?'#A78BFA':lv.color};font-weight:700">${db}</td><td>${excluded?'<span class="excluded-tag">교사발화</span>':`<span class="level-badge" style="background:${lv.color}22;border:1px solid ${lv.color}55;color:${lv.color}">${lv.label}</span>`}</td>`;
+    tbody.insertBefore(tr,tbody.firstChild);
+    document.getElementById('log-title').textContent=`측정 기록 (유효 ${vals.length}건 / 제외 ${excludeCount}건)`;
+  },sampleSec*1000);
+}
+function stopRecording(){
+  cancelAnimationFrame(rafId);clearInterval(timerId);clearInterval(logTimerId);clearInterval(warnCheckId);clearInterval(countdownId);clearInterval(koreanLevelIntervalId);
+  const klEl=document.getElementById('level-korean');if(klEl){klEl.textContent='—';klEl.style.color='#34D399';klEl.style.textShadow='none';}
+  stopPraiseTimer();
+  countdownActive=false;warnShowing=false;overCount=0;warnStage=0;
+  document.getElementById('warn1-overlay').classList.remove('show');
+  document.getElementById('warn2-overlay').classList.remove('show');
+  clearWarnBadges();isMuted=false;autoMuted=false;
+  document.getElementById('mute-btn').classList.remove('active');
+  document.getElementById('mute-indicator').classList.remove('visible');
+  document.getElementById('db-value').textContent='—';
+  document.getElementById('db-value').style.color='#34D399';
+  document.getElementById('db-value').style.textShadow='none';
+  document.getElementById('bar-fill').style.width='0%';
+  document.getElementById('status-badge').textContent='측정 완료';
+  document.getElementById('main-btn').textContent='▶ 다시 측정';
+  document.getElementById('main-btn').classList.remove('recording');
+  if(logRows.length>0){saveSession();}
+}
+function saveSession(){
+  const vals=allDb;
+  const session={id:Date.now(),date:new Date().toLocaleDateString('ko-KR'),startTs:new Date(startTime).toLocaleTimeString('ko-KR'),endTs:new Date().toLocaleTimeString('ko-KR'),duration:Math.floor((Date.now()-startTime)/1000),threshold,stats:{min:vals.length?Math.min(...vals):0,max:vals.length?Math.max(...vals):0,avg:vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10:0},excludeCount,warn1Count,warn2Count,logRows:logRows.slice()};
+  sessions.unshift(session);if(sessions.length>30)sessions=sessions.slice(0,30);
+}
+function autoExportCSV(){
+  const header='시각,경과(초),dB,구분\n';
+  const rows=logRows.map(r=>`${r.ts},${r.sec},${r.db},${r.excluded?'교사발화제외':'유효'}`).join('\n');
+  const blob=new Blob(['\uFEFF'+header+rows],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const date=new Date().toLocaleDateString('ko-KR').replace(/\. /g,'-').replace('.','');
+  Object.assign(document.createElement('a'),{href:url,download:`소음기록_${date}.csv`}).click();
+  URL.revokeObjectURL(url);
+}
+function renderSessions(){
+  const container=document.getElementById('sessions-list');
+  if(!sessions.length){container.innerHTML='<div class="no-sessions">저장된 기록이 없습니다<br><span style="font-size:10px;color:#2A3A55">측정 완료 시 자동 저장됩니다</span></div>';return;}
+  container.innerHTML=sessions.map((s,i)=>{
+    const avgLv=getLevel(s.stats.avg),maxLv=getLevel(s.stats.max);
+    const rows=s.logRows.map((r,idx)=>{const lv=getLevel(r.db);return `<tr${r.excluded?' class="excluded-row"':''}><td style="color:#3A4A6B">${idx+1}</td><td>${r.ts}</td><td style="color:#6B7A99;font-family:monospace">${fmt(r.sec)}</td><td style="color:${r.excluded?'#A78BFA':lv.color};font-weight:700">${r.db}</td><td>${r.excluded?'<span class="excluded-tag">교사발화</span>':`<span class="level-badge" style="background:${lv.color}22;border:1px solid ${lv.color}55;color:${lv.color}">${lv.label}</span>`}</td></tr>`;}).join('');
+    return `<div class="session-item"><div class="session-header" onclick="toggleSession(${i})"><div><div class="session-date">📅 ${s.date} ${s.startTs}~${s.endTs}</div><div class="session-meta">총 ${fmt(s.duration)} · 유효 ${s.logRows.filter(r=>!r.excluded).length}건 · 임계값 ${s.threshold}dB</div></div><div class="session-badges"><span class="s-badge" style="background:${avgLv.color}22;color:${avgLv.color}">평균 ${s.stats.avg}</span><span class="s-badge" style="background:${maxLv.color}22;color:${maxLv.color}">최대 ${s.stats.max}</span><button class="del-btn" onclick="event.stopPropagation();deleteSession(${i})">삭제</button></div></div><div class="session-body" id="session-body-${i}"><div class="log-scroll" style="padding:8px 10px"><table><thead><tr><th>#</th><th>시각</th><th>경과</th><th>dB</th><th>수준</th></tr></thead><tbody>${rows}</tbody></table></div><div style="padding:8px 14px;text-align:right"><button onclick="exportSessionCSV(${i})" style="padding:5px 14px;border-radius:7px;border:1px solid #1E2A45;background:#141929;color:#A3E635;cursor:pointer;font-size:11px">⬇ CSV</button></div></div></div>`;
+  }).join('');
+}
+function toggleSession(i){document.getElementById(`session-body-${i}`).classList.toggle('open');}
+function deleteSession(i){sessions.splice(i,1);renderSessions();}
+function clearAllSessions(){if(!confirm('모든 기록을 삭제할까요?'))return;sessions=[];renderSessions();}
+function exportSessionCSV(i){
+  const s=sessions[i];
+  const header='시각,경과(초),dB,구분\n';
+  const rows=s.logRows.map(r=>`${r.ts},${r.sec},${r.db},${r.excluded?'교사발화제외':'유효'}`).join('\n');
+  const blob=new Blob(['\uFEFF'+header+rows],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  Object.assign(document.createElement('a'),{href:url,download:`소음기록_${s.date.replace(/\./g,'').replace(/ /g,'')}.csv`}).click();
+  URL.revokeObjectURL(url);
+}
+function changeThreshold(delta){threshold=Math.max(50,Math.min(90,threshold+delta));document.getElementById('threshold-val').textContent=threshold+' dB';}
+function setIntervalSec(s,el){sampleSec=s;document.querySelectorAll('.ibtn').forEach(b=>b.classList.remove('active'));el.classList.add('active');}
+function checkThreshold(){
+  if(!isRecording||isMuted){overCount=0;quietCount=0;return;}
+  const db=readDb();
+
+  // 조용히 하세요 — 화면과 동일한 스무딩값 기준 60dB, 5초 지속 시 표시, 쿨다운 30초
+  if(!warnShowing&&!quietCooldown){
+    if(displayDb>=60){
+      quietCount++;
+      if(quietCount>=5){
+        quietCount=0;quietCooldown=true;
+        showQuietAlert();
+        setTimeout(()=>{quietCooldown=false;},30000);
+      }
+    } else quietCount=0;
+  }
+
+  // 1차/2차 경고 — 70dB 3초 지속 시 표시
+  if(warnShowing||warnStage>=2){overCount=0;return;}
+  if(db>=threshold){overCount++;if(overCount>=3){overCount=0;if(warnStage===0)triggerWarn1(db);else if(warnStage===1)triggerWarn2();}}
+  else overCount=0;
+}
+function dismissQuietAlert(){clearTimeout(quietAlertTimer);document.getElementById('quiet-alert').classList.remove('show');}
+function triggerWarn1(db){warnShowing=true;warn1Count++;resetQuietTimer();quietCount=0;dismissQuietAlert();document.getElementById('warn1-db').textContent=`현재 ${db.toFixed(1)} dB`;document.getElementById('warn1-overlay').classList.add('show');playBeepWarn(1);}
+function dismissWarn1(){
+  warnShowing=false;warnStage=1;
+  document.getElementById('warn1-overlay').classList.remove('show');
+  addWarnBadge();
+  deductStar();
+}
+function triggerWarn2(){
+  warnShowing=true;warnStage=2;warn2Count++;
+  dismissQuietAlert();
+  const db=readDb();
+  document.getElementById('warn1-db').textContent=`현재 ${db.toFixed(1)} dB`;
+  document.getElementById('warn1-overlay').classList.add('show');
+  playBeepWarn(1);
+}
+function dismissWarn2(){warnShowing=false;warnStage=0;document.getElementById('warn2-overlay').classList.remove('show');}
+let quietAlertTimer=null;
+function showQuietAlert(){
+  const el=document.getElementById('quiet-alert');
+  el.classList.add('show');
+  const bar=document.getElementById('qa-bar');
+  bar.style.transition='none';bar.style.width='100%';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    bar.style.transition='width 3s linear';bar.style.width='0%';
+  }));
+  clearTimeout(quietAlertTimer);
+  quietAlertTimer=setTimeout(()=>el.classList.remove('show'),3000);
+}
+function playBeepWarn(stage){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    if(stage===1){[523,659,784].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=f;o.type='sine';const t=ctx.currentTime+i*.18;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.35,t+.04);g.gain.exponentialRampToValueAtTime(.001,t+.35);o.start(t);o.stop(t+.4);});}
+    else{[0,.5,1].forEach(d=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=440;o.type='sawtooth';const t=ctx.currentTime+d;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.5,t+.03);g.gain.exponentialRampToValueAtTime(.001,t+.4);o.start(t);o.stop(t+.45);});}
+  }catch(e){}
+}
+function drawChart(){
+  const canvas=document.getElementById('chart');
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=canvas.offsetWidth*dpr;canvas.height=canvas.offsetHeight*dpr;
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  const W=canvas.offsetWidth,H=canvas.offsetHeight;
+  const pad={t:8,r:10,b:26,l:32},iW=W-pad.l-pad.r,iH=H-pad.t-pad.b;
+  ctx.clearRect(0,0,W,H);
+  [0,25,50,65,80,100].forEach(v=>{
+    const y=pad.t+iH-(v/100)*iH;
+    ctx.strokeStyle=v===65?'#FBBF2444':v===80?'#EF444433':'#1E2A45';
+    ctx.lineWidth=(v===65||v===80)?1.5:1;ctx.setLineDash((v===65||v===80)?[4,4]:[]);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#3A4A6B';ctx.font='8px monospace';ctx.textAlign='right';ctx.fillText(v,pad.l-3,y+3);
+  });
+  if(chartPoints.length<2)return;
+  const n=chartPoints.length;
+  let inE=false,eS=0;
+  chartPoints.forEach((p,i)=>{const x=pad.l+(i/(n-1))*iW;if(p.excluded&&!inE){inE=true;eS=x;}if(!p.excluded&&inE){ctx.fillStyle='#7C3AED22';ctx.fillRect(eS,pad.t,x-eS,iH);inE=false;}});
+  if(inE){ctx.fillStyle='#7C3AED22';ctx.fillRect(eS,pad.t,(pad.l+iW)-eS,iH);}
+  ctx.lineJoin='round';ctx.lineWidth=2;let mv=false;
+  chartPoints.forEach((p,i)=>{const x=pad.l+(i/(n-1))*iW,y=pad.t+iH-(p.db/100)*iH;if(p.excluded){ctx.strokeStyle='#A78BFA66';ctx.setLineDash([3,4]);}else{ctx.strokeStyle='#818CF8';ctx.setLineDash([]);}if(!mv){ctx.beginPath();ctx.moveTo(x,y);mv=true;}else ctx.lineTo(x,y);if(i<n-1&&p.excluded!==chartPoints[i+1].excluded){ctx.stroke();ctx.beginPath();ctx.moveTo(x,y);}});
+  ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#6B7A99';ctx.font='9px monospace';ctx.textAlign='center';
+  const step=Math.max(1,Math.floor(n/6));
+  chartPoints.forEach((p,i)=>{if(i%step===0||i===n-1){ctx.fillText(fmt(p.sec),pad.l+(i/(n-1))*iW,H-4);}});
+}
+
+// ── 발화 자동 감지 루프 ─────────────────────────────────────────────────
+function toggleSpeechDetect(){
+  autoDetectEnabled=!autoDetectEnabled;
+  const btn=document.getElementById('speech-toggle-btn');
+  if(autoDetectEnabled){
+    speechBaseline=0;speechBaseArr=[];speechOnset=0;speechRelease=0;
+    btn.textContent='보정 중...';btn.style.color='#FBBF24';btn.style.borderColor='#FBBF2444';btn.style.background='#FBBF2422';
+    setTimeout(()=>{if(autoDetectEnabled){btn.textContent='켜짐';btn.style.color='#34D399';btn.style.borderColor='#34D39944';btn.style.background='#34D39922';}},1500);
+  }else{
+    btn.textContent='꺼짐';btn.style.color='#6B7A99';btn.style.borderColor='#1E2A45';btn.style.background='#1E2A45';
+    isSpeechActive=false;speechOnset=0;speechRelease=0;
+    document.getElementById('speech-overlay').classList.remove('show');
+    if(isRecording&&isMuted&&autoMuted){autoMuted=false;setMute(false);}
+  }
+}
+function speechDetectLoop(){
+  if(!analyser||!speechFreqData){setTimeout(speechDetectLoop,200);return;}
+  if(!autoDetectEnabled){setTimeout(speechDetectLoop,200);return;}
+  analyser.getByteFrequencyData(speechFreqData);
+  const N=speechFreqData.length;
+  const binHz=audioCtx.sampleRate/analyser.fftSize;
+  const lo=Math.max(0,Math.floor(SPEECH_LO/binHz));
+  const hi=Math.min(N-1,Math.ceil(SPEECH_HI/binHz));
+  const sBins=hi-lo+1;
+  let sSum=0;
+  for(let i=lo;i<=hi;i++)sSum+=speechFreqData[i];
+  const avgS=sSum/sBins;
+
+  // 발화 중이 아닐 때만 기준선 업데이트 (최근 ~5초)
+  if(!isSpeechActive){
+    speechBaseArr.push(avgS);
+    if(speechBaseArr.length>150)speechBaseArr.shift();
+  }
+
+  // 절대값 임계값으로 판정 (보정 기간 45프레임 ~1.5초 이후부터)
+  const detected=speechBaseArr.length>=45&&avgS>speechThreshold;
+
+  // 현재 레벨 표시
+  const curEl=document.getElementById('speech-cur-val');
+  if(curEl)curEl.textContent=Math.round(avgS);
+
+  if(detected){speechOnset=Math.min(speechOnset+1,SPEECH_ON+5);speechRelease=0;}
+  else{speechRelease=Math.min(speechRelease+1,SPEECH_OFF+5);speechOnset=0;}
+  if(!isSpeechActive&&speechOnset>=SPEECH_ON){
+    isSpeechActive=true;
+    document.getElementById('speech-overlay').classList.add('show');
+    if(isRecording&&!isMuted){autoMuted=true;setMute(true);}
+  }else if(isSpeechActive&&speechRelease>=SPEECH_OFF){
+    isSpeechActive=false;
+    document.getElementById('speech-overlay').classList.remove('show');
+    if(isRecording&&isMuted&&autoMuted){autoMuted=false;setMute(false);}
+  }
+  setTimeout(speechDetectLoop,100);
+}
+
+// ══ 초기화 ═════════════════════════════════════════════════════════════
+renderSessions();
+renderSchedList(-1);
+setInterval(schedTick,1000);
+schedTick();
+</script>
+</body>
+</html>
