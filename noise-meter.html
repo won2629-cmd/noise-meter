@@ -19,7 +19,7 @@ body{background:#0B0F1E;color:#E8EDF7;font-family:system-ui,-apple-system,sans-s
 .mono{font-family:'Courier New',monospace}
 
 /* ══ 왼쪽: 시간표 패널 ══ */
-.schedule-panel{}
+.schedule-panel .card{padding:10px 12px}
 .sched-clock{font-family:'Courier New',monospace;font-size:76px;font-weight:900;color:#E8EDF7;text-align:center;letter-spacing:2px;margin:4px 0}
 .sched-date{font-size:12px;color:#6B7A99;text-align:center;margin-bottom:12px}
 .current-period-box{background:#1E2A45;border-radius:10px;padding:12px 14px;margin-bottom:12px}
@@ -152,14 +152,17 @@ tbody tr{border-bottom:1px solid #1E2A4540}
 .star-restore-btn:hover{background:#6366F122}
 
 /* ══ 1차 경고 미니 배지 ══ */
-#warn1-mini{display:none;position:fixed;left:12px;top:50%;transform:translateY(-50%);z-index:800;background:linear-gradient(145deg,#1C1400,#2D1F00);border:2px solid #F59E0B;border-radius:14px;padding:12px 14px;text-align:center;width:120px;box-shadow:0 0 20px #F59E0B44;cursor:pointer}
-#warn1-mini.show{display:block;animation:fadeIn .3s ease}
+#warn-badges-container{position:fixed;left:12px;top:50%;transform:translateY(-50%);z-index:800;display:flex;flex-direction:column;gap:5px;cursor:pointer}
+.warn-mini-badge{background:linear-gradient(145deg,#1C1400,#2D1F00);border:2px solid #F59E0B;border-radius:10px;padding:7px 10px;text-align:center;width:88px;box-shadow:0 0 16px #F59E0B33;animation:fadeIn .3s ease}
+.wmb-icon{font-size:20px;display:block}
+.wmb-num{font-size:11px;font-weight:900;color:#FFF5CC;margin-top:2px;letter-spacing:.5px}
+.wmb-more{font-size:12px;font-weight:900;color:#FFF5CC;text-align:center;padding:4px 0}
 .w1m-icon{font-size:22px}
 .w1m-label{font-size:13px;font-weight:900;color:#FFF5CC;margin-top:5px;line-height:1.3}
 .w1m-db{font-size:11px;color:#A07A20;margin-top:3px}
 
 /* ══ 1차 경고 ══ */
-#warn1-overlay{display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.75);align-items:center;justify-content:center}
+#warn1-overlay{display:none;position:fixed;inset:0;z-index:915;background:rgba(0,0,0,.75);align-items:center;justify-content:center}
 #warn1-overlay.show{display:flex;animation:fadeIn .25s ease}
 .warn1-box{background:linear-gradient(145deg,#1C1400,#2D1F00);border:3px solid #F59E0B;border-radius:22px;padding:40px 48px;text-align:center;max-width:520px;width:90%;box-shadow:0 0 60px #F59E0B55;display:flex;flex-direction:column;align-items:center;gap:16px}
 .warn1-icon{font-size:60px;animation:pulse 1s ease-in-out infinite}
@@ -222,6 +225,31 @@ tbody tr{border-bottom:1px solid #1E2A4540}
 .legend-item{display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:7px;background:#141929;border:1px solid #1E2A45;font-size:10px}
 .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 
+/* ══ 칭찬 오버레이 ══ */
+#praise-overlay{display:none;position:fixed;inset:0;z-index:940;background:rgba(4,22,54,0.92);flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px}
+#praise-overlay.show{display:flex;animation:fadeIn .4s ease}
+.praise-star{font-size:88px;color:#7DD3FC;line-height:1}
+.praise-msg{font-size:clamp(36px,6vw,72px);font-weight:900;color:#BAE6FD;word-break:keep-all;line-height:1.3}
+.praise-sub{font-size:18px;color:#38BDF8}
+.praise-plus{display:inline-flex;align-items:center;gap:8px;background:#0C2744;border:2px solid #378ADD;border-radius:12px;padding:10px 24px}
+.praise-bar-wrap{width:220px;height:5px;background:#0C447C;border-radius:3px;overflow:hidden}
+.praise-bar{height:100%;width:100%;background:#38BDF8;border-radius:3px}
+#praise-panel-badge{display:none;background:#0C2744;border:2px solid #378ADD;border-radius:10px;padding:9px 12px;text-align:center;margin-bottom:8px}
+#praise-panel-badge.show{display:block;animation:fadeIn .3s ease}
+.ppb-star{font-family:'Courier New',monospace;font-size:26px;font-weight:900;color:#7DD3FC;line-height:1}
+.ppb-msg{font-size:13px;font-weight:900;color:#BAE6FD;margin-top:3px}
+.ppb-sub{font-size:9px;color:#38BDF8;margin-top:1px}
+.ppb-bar-wrap{height:3px;background:#0C447C;border-radius:2px;overflow:hidden;margin-top:7px}
+.ppb-bar{height:100%;width:100%;background:#38BDF8;border-radius:2px}
+.quiet-progress-row{background:#0A1018;border-radius:8px;padding:7px 10px;border:1px solid #1E2A45;margin-bottom:4px}
+.qp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.qp-label{font-size:9px;color:#2A3A55}
+.qp-time{font-family:'Courier New',monospace;font-size:10px;color:#38BDF8;font-weight:700}
+.qp-bar-track{height:14px;background:#0C2744;border-radius:7px;overflow:hidden}
+.qp-bar-fill{height:100%;width:0%;background:#38BDF8;border-radius:7px;transition:width .5s linear}
+.qp-hint{font-size:8px;color:#2A3A55;text-align:right;margin-top:4px}
+#level-korean{font-size:clamp(36px,4vw,64px);font-weight:900;color:#34D399;line-height:1;transition:color .5s,font-size .3s,text-shadow .5s;margin:10px 0 6px}
+
 /* ══ 발화 자동 감지 오버레이 ══ */
 #speech-overlay{display:none;position:fixed;inset:0;z-index:950;background:#F59E0B;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px}
 #speech-overlay.show{display:flex;animation:fadeIn .3s ease}
@@ -258,11 +286,7 @@ tbody tr{border-bottom:1px solid #1E2A4540}
   </div>
 </div>
 
-<div id="warn1-mini" onclick="this.classList.remove('show')" title="클릭하여 닫기">
-  <div class="w1m-icon">⚠️</div>
-  <div class="w1m-label">1차 경고</div>
-  <div class="w1m-db" id="warn1-mini-db">— dB</div>
-</div>
+<div id="warn-badges-container" onclick="clearWarnBadges()" title="클릭하여 모두 닫기"></div>
 
 <div id="warn2-overlay">
   <div class="warn2-box">
@@ -303,6 +327,18 @@ tbody tr{border-bottom:1px solid #1E2A4540}
   <div class="speech-dots"><span></span><span></span><span></span></div>
 </div>
 
+<!-- 칭찬 오버레이 -->
+<div id="praise-overlay">
+  <div class="praise-star">★</div>
+  <div class="praise-msg">참 잘했어요!</div>
+  <div class="praise-sub">5분간 조용히 수업을 들었어요</div>
+  <div class="praise-plus">
+    <span style="font-size:26px;color:#7DD3FC;line-height:1">★</span>
+    <span style="font-family:'Courier New',monospace;font-size:26px;font-weight:900;color:#7DD3FC;line-height:1">+1</span>
+  </div>
+  <div class="praise-bar-wrap"><div id="praise-bar" class="praise-bar"></div></div>
+</div>
+
 <!-- HEADER -->
 <div class="page-header">
   <h1>🎙 소음 모니터 &amp; 기록기</h1>
@@ -314,6 +350,42 @@ tbody tr{border-bottom:1px solid #1E2A4540}
   <!-- ══ 왼쪽: 시간표 ══ -->
   <aside class="schedule-panel">
     <div class="card">
+
+      <!-- 칭찬 패널 뱃지 -->
+      <div id="praise-panel-badge">
+        <div class="ppb-star">★ +1</div>
+        <div class="ppb-msg">참 잘했어요!</div>
+        <div class="ppb-sub">5분간 조용히 했어요</div>
+        <div class="ppb-bar-wrap"><div id="praise-panel-bar" class="ppb-bar"></div></div>
+      </div>
+
+      <!-- 별 보상 (최상단) -->
+      <div class="star-section">
+        <div class="star-header">
+          <div class="star-header-lbl">
+            <span style="font-size:12px;color:#FBBF24">★</span>
+            <span>학급 칭찬 별</span>
+          </div>
+          <button class="star-reset-btn" onclick="resetStars()" title="초기화">↺</button>
+        </div>
+        <div class="star-display">
+          <span id="star-icon" style="font-size:42px;color:#FBBF24;line-height:1">★</span>
+          <span id="star-count" style="font-family:'Courier New',monospace;font-size:42px;font-weight:900;color:#FBBF24;line-height:1">0</span>
+        </div>
+        <div class="star-btns">
+          <button class="star-minus" onclick="manualStar(-1)" aria-label="별 빼기">−</button>
+          <button class="star-plus"  onclick="manualStar(1)"  aria-label="별 추가">+</button>
+        </div>
+        <div class="star-restore" id="star-restore">
+          <button class="star-restore-btn" onclick="doRestoreStar()">
+            ↩ 복구 — 실수였어요
+            <span id="star-restore-timer" style="font-family:monospace;font-size:10px;color:#4A5A7A">10</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 조용히 유지 진행바는 중앙 패널에 표시됩니다 -->
+
       <div class="lbl">현재 시각</div>
       <div class="sched-clock" id="sched-clock">00:00:00</div>
       <div class="sched-date" id="sched-date"></div>
@@ -326,31 +398,6 @@ tbody tr{border-bottom:1px solid #1E2A4540}
       <div class="lbl" style="margin-bottom:8px">오늘 시간표</div>
       <div class="sched-list" id="sched-list"></div>
 
-      <!-- 별 보상 -->
-      <div class="star-section">
-        <div class="star-header">
-          <div class="star-header-lbl">
-            <i class="ti ti-star" style="font-size:12px;color:#FBBF24" aria-hidden="true"></i>
-            <span>학급 칭찬 별</span>
-          </div>
-          <button class="star-reset-btn" onclick="resetStars()" title="초기화">↺</button>
-        </div>
-        <div class="star-display">
-          <i class="ti ti-star" id="star-icon" style="font-size:42px;color:#FBBF24" aria-hidden="true"></i>
-          <span id="star-count" style="font-family:'Courier New',monospace;font-size:42px;font-weight:900;color:#FBBF24;line-height:1">0</span>
-        </div>
-        <div class="star-btns">
-          <button class="star-minus" onclick="manualStar(-1)" aria-label="별 빼기">−</button>
-          <button class="star-plus"  onclick="manualStar(1)"  aria-label="별 추가">+</button>
-        </div>
-        <div class="star-restore" id="star-restore">
-          <button class="star-restore-btn" onclick="doRestoreStar()">
-            <i class="ti ti-arrow-back-up" style="font-size:13px" aria-hidden="true"></i>
-            복구 — 실수였어요
-            <span id="star-restore-timer" style="font-family:monospace;font-size:10px;color:#4A5A7A">10</span>
-          </button>
-        </div>
-      </div>
     </div>
   </aside>
 
@@ -365,11 +412,19 @@ tbody tr{border-bottom:1px solid #1E2A4540}
     <div id="measure-panel" style="width:100%;max-width:640px">
       <div class="card" style="text-align:center">
         <div class="lbl">현재 소음 수준</div>
-        <div id="db-value">—</div>
-        <div id="db-unit">dB</div>
-        <div class="bar-track"><div id="bar-fill"></div></div>
-        <div class="bar-scale"><span>0</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100 dB</span></div>
-        <div id="status-badge">측정 대기 중</div>
+        <div id="db-value" style="display:none">—</div>
+        <div id="db-unit" style="display:none">dB</div>
+        <div id="level-korean">—</div>
+        <div class="quiet-progress-row" id="quiet-progress-row" style="display:none;text-align:left;margin-bottom:10px">
+          <div class="qp-header">
+            <span class="qp-label">조용히 유지 중</span>
+            <span class="qp-time" id="qp-time">00:00</span>
+          </div>
+          <div class="qp-bar-track"><div class="qp-bar-fill" id="qp-bar-fill"></div></div>
+          <div class="qp-hint">목표 5분 달성 시 ★+1</div>
+        </div>
+        <div class="bar-track" style="display:none"><div id="bar-fill"></div></div>
+        <div id="status-badge" style="display:none">측정 대기 중</div>
       </div>
       <div class="card">
         <div class="lbl" style="margin-bottom:8px">교사 발화 제외</div>
@@ -577,6 +632,7 @@ function schedTick(){
 function renderSchedList(curIdx){
   const list=document.getElementById('sched-list');
   list.innerHTML=SCHEDULE.map((p,i)=>{
+    if(p.type==='break')return '';
     const {s:ps,e:pe}=toSecP(p);
     const state=i<curIdx?'past':i===curIdx?'current':'future';
     const color=TYPE_COLOR[p.type];
@@ -749,19 +805,45 @@ function updateStarDisplay(){
   const cnt=document.getElementById('star-count');
   const ico=document.getElementById('star-icon');
   cnt.textContent=starCount;
-  const sz=starCount>=100?'28px':starCount>=10?'36px':'42px';
+  const abs=Math.abs(starCount);
+  const sz=abs>=100?'28px':abs>=10?'36px':'42px';
   cnt.style.fontSize=sz;
   ico.style.fontSize=sz;
+  const color=starCount<0?'#EF4444':'#FBBF24';
+  cnt.style.color=color;
+  ico.style.color=color;
 }
+function addWarnBadge(){
+  warnDismissCount++;
+  renderWarnBadges();
+}
+function renderWarnBadges(){
+  const container=document.getElementById('warn-badges-container');
+  container.innerHTML='';
+  const show=Math.min(warnDismissCount,6);
+  for(let i=0;i<show;i++){
+    const b=document.createElement('div');
+    b.className='warn-mini-badge';
+    b.innerHTML=`<span class="wmb-icon">⚠️</span><div class="wmb-num">${i+1}차 경고</div>`;
+    container.appendChild(b);
+  }
+  if(warnDismissCount>6){
+    const more=document.createElement('div');
+    more.className='warn-mini-badge';
+    more.innerHTML=`<div class="wmb-more">+${warnDismissCount-6}회 더</div>`;
+    container.appendChild(more);
+  }
+}
+function clearWarnBadges(){warnDismissCount=0;document.getElementById('warn-badges-container').innerHTML='';}
 function manualStar(d){
-  starCount=Math.max(0,Math.min(999,starCount+d));
+  starCount=Math.min(999,starCount+d);
   updateStarDisplay();
 }
 function resetStars(){
   if(starCount===0||confirm('별을 초기화할까요?')){starCount=0;updateStarDisplay();hideStarRestore();}
 }
 function deductStar(){
-  starCount=Math.max(0,starCount-1);
+  starCount=starCount-1;
   updateStarDisplay();
   showStarRestore();
 }
@@ -784,6 +866,55 @@ function doRestoreStar(){
   starCount=Math.min(999,starCount+1);
   updateStarDisplay();
   hideStarRestore();
+}
+
+// ══ 5분 칭찬 타이머 ════════════════════════════════════════════════════
+function updateQuietProgress(){
+  const pct=Math.min(quietSec/PRAISE_SEC*100,100);
+  const f=document.getElementById('qp-bar-fill');
+  if(f)f.style.width=pct+'%';
+  const t=document.getElementById('qp-time');
+  if(t){const m=Math.floor(quietSec/60),s=quietSec%60;t.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
+}
+function resetQuietTimer(){
+  quietSec=0;updateQuietProgress();
+}
+function startPraiseTimer(){
+  clearInterval(praiseIntervalId);
+  quietSec=0;
+  document.getElementById('quiet-progress-row').style.display='block';
+  updateQuietProgress();
+  praiseIntervalId=setInterval(()=>{
+    if(!isRecording||warnShowing)return;
+    quietSec++;updateQuietProgress();
+    if(quietSec>=PRAISE_SEC){
+      quietSec=0;updateQuietProgress();
+      showPraiseOverlay();
+    }
+  },1000);
+}
+function stopPraiseTimer(){
+  clearInterval(praiseIntervalId);praiseIntervalId=null;
+  quietSec=0;
+  document.getElementById('quiet-progress-row').style.display='none';
+  document.getElementById('praise-overlay').classList.remove('show');
+  document.getElementById('praise-panel-badge').classList.remove('show');
+  clearTimeout(praiseDismissTimer);
+}
+function showPraiseOverlay(){
+  starCount=Math.min(999,starCount+1);updateStarDisplay();
+  const ov=document.getElementById('praise-overlay');
+  ov.classList.add('show');
+  const bar=document.getElementById('praise-bar');
+  bar.style.transition='none';bar.style.width='100%';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{bar.style.transition='width 4s linear';bar.style.width='0%';}));
+  const pb=document.getElementById('praise-panel-badge');
+  pb.classList.add('show');
+  const pbar=document.getElementById('praise-panel-bar');
+  pbar.style.transition='none';pbar.style.width='100%';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{pbar.style.transition='width 5s linear';pbar.style.width='0%';}));
+  clearTimeout(praiseDismissTimer);
+  praiseDismissTimer=setTimeout(()=>{ov.classList.remove('show');pb.classList.remove('show');},4000);
 }
 
 // ══ 화이트보드 ═════════════════════════════════════════════════════════
@@ -833,10 +964,28 @@ let threshold=70,overCount=0,warnStage=0,warnShowing=false;
 let countdownSec=600,countdownActive=false;
 let warn1Count=0,warn2Count=0;
 let sessions=[];
-let displayDb=0; // 화면 표시용 EMA 스무딩값
+let displayDb=0;
 let thresholdBeepCooldown=false;
+let koreanLevelIntervalId=null;
+const KOREAN_LEVELS=[
+  {max:60, text:'조용함',   color:'#34D399'},
+  {max:70, text:'보통',     color:'#FBBF24'},
+  {max:Infinity, text:'시끄러움', color:'#EF4444'},
+];
+function updateKoreanLevel(){
+  const lv=KOREAN_LEVELS.find(l=>displayDb<l.max)||KOREAN_LEVELS[KOREAN_LEVELS.length-1];
+  const el=document.getElementById('level-korean');
+  if(!el)return;
+  el.textContent=lv.text;
+  el.style.color=lv.color;
+  el.style.textShadow=`0 0 24px ${lv.color}55`;
+  el.style.fontSize='clamp(42px,5vw,72px)';
+}
 // ── 별 보상 ──
-let starCount=0, starRestoreInterval=null;
+let starCount=5, starRestoreInterval=null, warnDismissCount=0;
+// ── 5분 칭찬 타이머 ──
+let quietSec=0, praiseIntervalId=null, praiseDismissTimer=null;
+const PRAISE_SEC=300;
 
 // ── 발화 자동 감지 ──────────────────────────────────────────────────────
 let speechOnset=0,speechRelease=0,isSpeechActive=false,autoMuted=false;
@@ -928,8 +1077,11 @@ function startRecording(){
   document.getElementById('log-body').innerHTML='';
   document.getElementById('warn1-overlay').classList.remove('show');
   document.getElementById('warn2-overlay').classList.remove('show');
-  document.getElementById('warn1-mini').classList.remove('show');
+  clearWarnBadges();warnDismissCount=0;
   startTime=Date.now();isRecording=true;isMuted=false;thresholdBeepCooldown=false;
+  startPraiseTimer();
+  updateKoreanLevel();
+  koreanLevelIntervalId=setInterval(updateKoreanLevel,3000);
   document.getElementById('mute-indicator').classList.remove('visible');
   document.getElementById('main-btn').textContent='⏹ 측정 중지';
   document.getElementById('main-btn').classList.add('recording');
@@ -964,11 +1116,13 @@ function startRecording(){
   },sampleSec*1000);
 }
 function stopRecording(){
-  cancelAnimationFrame(rafId);clearInterval(timerId);clearInterval(logTimerId);clearInterval(warnCheckId);clearInterval(countdownId);
+  cancelAnimationFrame(rafId);clearInterval(timerId);clearInterval(logTimerId);clearInterval(warnCheckId);clearInterval(countdownId);clearInterval(koreanLevelIntervalId);
+  const klEl=document.getElementById('level-korean');if(klEl){klEl.textContent='—';klEl.style.color='#34D399';klEl.style.textShadow='none';}
+  stopPraiseTimer();
   countdownActive=false;warnShowing=false;overCount=0;warnStage=0;
   document.getElementById('warn1-overlay').classList.remove('show');
   document.getElementById('warn2-overlay').classList.remove('show');
-  document.getElementById('warn1-mini').classList.remove('show');isMuted=false;autoMuted=false;
+  clearWarnBadges();isMuted=false;autoMuted=false;
   document.getElementById('mute-btn').classList.remove('active');
   document.getElementById('mute-indicator').classList.remove('visible');
   document.getElementById('db-value').textContent='—';
@@ -1023,18 +1177,21 @@ function checkThreshold(){
   if(db>=threshold){overCount++;if(overCount>=3){overCount=0;if(warnStage===0)triggerWarn1(db);else if(warnStage===1)triggerWarn2();}}
   else overCount=0;
 }
-function triggerWarn1(db){warnShowing=true;warn1Count++;document.getElementById('warn1-db').textContent=`현재 ${db.toFixed(1)} dB`;document.getElementById('warn1-overlay').classList.add('show');playBeepWarn(1);}
+function dismissQuietAlert(){clearTimeout(quietAlertTimer);document.getElementById('quiet-alert').classList.remove('show');}
+function triggerWarn1(db){warnShowing=true;warn1Count++;resetQuietTimer();dismissQuietAlert();document.getElementById('warn1-db').textContent=`현재 ${db.toFixed(1)} dB`;document.getElementById('warn1-overlay').classList.add('show');playBeepWarn(1);}
 function dismissWarn1(){
   warnShowing=false;warnStage=1;
   document.getElementById('warn1-overlay').classList.remove('show');
-  document.getElementById('warn1-mini-db').textContent=document.getElementById('warn1-db').textContent;
-  document.getElementById('warn1-mini').classList.add('show');
+  addWarnBadge();
   deductStar();
 }
 function triggerWarn2(){
   warnShowing=true;warnStage=2;warn2Count++;
-  document.getElementById('warn2-overlay').classList.add('show');
-  playBeepWarn(2);
+  dismissQuietAlert();
+  const db=readDb();
+  document.getElementById('warn1-db').textContent=`현재 ${db.toFixed(1)} dB`;
+  document.getElementById('warn1-overlay').classList.add('show');
+  playBeepWarn(1);
 }
 function dismissWarn2(){warnShowing=false;warnStage=0;document.getElementById('warn2-overlay').classList.remove('show');}
 let quietAlertTimer=null;
