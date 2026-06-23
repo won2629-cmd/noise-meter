@@ -135,6 +135,22 @@ tbody tr{border-bottom:1px solid #1E2A4540}
 .no-sessions{text-align:center;color:#3A4A6B;font-size:13px;padding:30px 0}
 .clear-all-btn{padding:7px 16px;border-radius:9px;border:1px solid #EF444444;background:transparent;color:#EF444499;cursor:pointer;font-size:11px;font-weight:600;margin-left:auto;display:block}
 
+/* ══ 별 보상 ══ */
+.star-section{background:#0A1018;border-radius:10px;padding:11px 12px;border:1px solid #1E2A45;margin-top:4px;flex-shrink:0}
+.star-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.star-header-lbl{display:flex;align-items:center;gap:5px;font-size:10px;color:#6B7A99;font-weight:600;letter-spacing:.5px}
+.star-reset-btn{background:none;border:none;cursor:pointer;font-size:11px;color:#3A4A6B;padding:0;line-height:1}
+.star-reset-btn:hover{color:#6B7A99}
+.star-display{display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:9px;line-height:1}
+.star-btns{display:flex;gap:6px}
+.star-minus{flex:1;padding:9px 0;border-radius:8px;border:1px solid #1E2A45;background:#141929;color:#94A3B8;font-size:20px;cursor:pointer;line-height:1;transition:background .1s}
+.star-minus:hover{background:#1E2A45}
+.star-plus{flex:1;padding:9px 0;border-radius:8px;border:none;background:#FBBF24;color:#1C1400;font-size:20px;font-weight:700;cursor:pointer;line-height:1;transition:opacity .15s}
+.star-plus:hover{opacity:.85}
+.star-restore{display:none;margin-top:6px}
+.star-restore-btn{width:100%;padding:7px 0;border-radius:8px;border:1px solid #6366F155;background:#6366F111;color:#818CF8;font-size:11px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.star-restore-btn:hover{background:#6366F122}
+
 /* ══ 1차 경고 미니 배지 ══ */
 #warn1-mini{display:none;position:fixed;left:12px;top:50%;transform:translateY(-50%);z-index:800;background:linear-gradient(145deg,#1C1400,#2D1F00);border:2px solid #F59E0B;border-radius:14px;padding:12px 14px;text-align:center;width:120px;box-shadow:0 0 20px #F59E0B44;cursor:pointer}
 #warn1-mini.show{display:block;animation:fadeIn .3s ease}
@@ -309,6 +325,32 @@ tbody tr{border-bottom:1px solid #1E2A4540}
       </div>
       <div class="lbl" style="margin-bottom:8px">오늘 시간표</div>
       <div class="sched-list" id="sched-list"></div>
+
+      <!-- 별 보상 -->
+      <div class="star-section">
+        <div class="star-header">
+          <div class="star-header-lbl">
+            <i class="ti ti-star" style="font-size:12px;color:#FBBF24" aria-hidden="true"></i>
+            <span>학급 칭찬 별</span>
+          </div>
+          <button class="star-reset-btn" onclick="resetStars()" title="초기화">↺</button>
+        </div>
+        <div class="star-display">
+          <i class="ti ti-star" id="star-icon" style="font-size:42px;color:#FBBF24" aria-hidden="true"></i>
+          <span id="star-count" style="font-family:'Courier New',monospace;font-size:42px;font-weight:900;color:#FBBF24;line-height:1">0</span>
+        </div>
+        <div class="star-btns">
+          <button class="star-minus" onclick="manualStar(-1)" aria-label="별 빼기">−</button>
+          <button class="star-plus"  onclick="manualStar(1)"  aria-label="별 추가">+</button>
+        </div>
+        <div class="star-restore" id="star-restore">
+          <button class="star-restore-btn" onclick="doRestoreStar()">
+            <i class="ti ti-arrow-back-up" style="font-size:13px" aria-hidden="true"></i>
+            복구 — 실수였어요
+            <span id="star-restore-timer" style="font-family:monospace;font-size:10px;color:#4A5A7A">10</span>
+          </button>
+        </div>
+      </div>
     </div>
   </aside>
 
@@ -360,10 +402,10 @@ tbody tr{border-bottom:1px solid #1E2A4540}
         <div class="controls-row">
           <span class="lbl" style="margin:0">기록 간격</span>
           <div style="display:flex;gap:5px">
-            <button class="ibtn active" onclick="setIntervalSec(1,this)">1초</button>
+            <button class="ibtn" onclick="setIntervalSec(1,this)">1초</button>
             <button class="ibtn" onclick="setIntervalSec(3,this)">3초</button>
             <button class="ibtn" onclick="setIntervalSec(5,this)">5초</button>
-            <button class="ibtn" onclick="setIntervalSec(10,this)">10초</button>
+            <button class="ibtn active" onclick="setIntervalSec(10,this)">10초</button>
           </div>
           <span class="lbl" style="margin:0 0 0 6px">경고</span>
           <div style="display:flex;align-items:center;gap:5px">
@@ -702,6 +744,48 @@ function playTimerBeep(){
   }catch(e){}
 }
 
+// ══ 별 보상 ═════════════════════════════════════════════════════════════
+function updateStarDisplay(){
+  const cnt=document.getElementById('star-count');
+  const ico=document.getElementById('star-icon');
+  cnt.textContent=starCount;
+  const sz=starCount>=100?'28px':starCount>=10?'36px':'42px';
+  cnt.style.fontSize=sz;
+  ico.style.fontSize=sz;
+}
+function manualStar(d){
+  starCount=Math.max(0,Math.min(999,starCount+d));
+  updateStarDisplay();
+}
+function resetStars(){
+  if(starCount===0||confirm('별을 초기화할까요?')){starCount=0;updateStarDisplay();hideStarRestore();}
+}
+function deductStar(){
+  starCount=Math.max(0,starCount-1);
+  updateStarDisplay();
+  showStarRestore();
+}
+function showStarRestore(){
+  hideStarRestore();
+  let cd=10;
+  document.getElementById('star-restore').style.display='block';
+  document.getElementById('star-restore-timer').textContent=cd;
+  starRestoreInterval=setInterval(()=>{
+    cd--;
+    document.getElementById('star-restore-timer').textContent=cd;
+    if(cd<=0){clearInterval(starRestoreInterval);document.getElementById('star-restore').style.display='none';}
+  },1000);
+}
+function hideStarRestore(){
+  clearInterval(starRestoreInterval);
+  document.getElementById('star-restore').style.display='none';
+}
+function doRestoreStar(){
+  starCount=Math.min(999,starCount+1);
+  updateStarDisplay();
+  hideStarRestore();
+}
+
 // ══ 화이트보드 ═════════════════════════════════════════════════════════
 let wbColor='#1a1a2e', wbBold=true, wbSize=1;
 const WB_SIZES=[28,38,48];
@@ -737,12 +821,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   wb.style.fontWeight='700';
   document.getElementById('wb-bold-btn').classList.add('active-btn');
   document.getElementById('wb-size-btn').textContent=WB_SIZE_LABELS[wbSize];
+  updateStarDisplay();
 });
 
 // ══ 소음측정기 ═════════════════════════════════════════════════════════
 let audioCtx,analyser,stream;
 let rafId,timerId,logTimerId,warnCheckId,countdownId;
-let isRecording=false,isMuted=false,sampleSec=1,startTime=0;
+let isRecording=false,isMuted=false,sampleSec=10,startTime=0;
 let allDb=[],logRows=[],chartPoints=[],excludeCount=0;
 let threshold=70,overCount=0,warnStage=0,warnShowing=false;
 let countdownSec=600,countdownActive=false;
@@ -750,6 +835,8 @@ let warn1Count=0,warn2Count=0;
 let sessions=[];
 let displayDb=0; // 화면 표시용 EMA 스무딩값
 let thresholdBeepCooldown=false;
+// ── 별 보상 ──
+let starCount=0, starRestoreInterval=null;
 
 // ── 발화 자동 감지 ──────────────────────────────────────────────────────
 let speechOnset=0,speechRelease=0,isSpeechActive=false,autoMuted=false;
@@ -942,6 +1029,7 @@ function dismissWarn1(){
   document.getElementById('warn1-overlay').classList.remove('show');
   document.getElementById('warn1-mini-db').textContent=document.getElementById('warn1-db').textContent;
   document.getElementById('warn1-mini').classList.add('show');
+  deductStar();
 }
 function triggerWarn2(){
   warnShowing=true;warnStage=2;warn2Count++;
