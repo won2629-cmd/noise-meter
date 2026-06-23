@@ -155,6 +155,14 @@ tbody tr{border-bottom:1px solid #1E2A4540}
 #warn2-overlay{display:none;position:fixed;inset:0;z-index:910;background:rgba(0,0,0,0.72);align-items:center;justify-content:center;text-align:center}
 #warn2-overlay.show{display:flex;animation:fadeIn .4s ease}
 .warn2-box{width:min(67vw,960px);min-height:min(58vh,380px);background:linear-gradient(145deg,#1a0000,#2d0000);border:2px solid #EF4444;border-radius:20px;padding:40px 48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:0 0 60px #EF444444}
+
+/* ══ 조용히 알림 ══ */
+#quiet-alert{display:none;position:fixed;inset:0;z-index:905;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;pointer-events:none}
+#quiet-alert.show{display:flex;animation:fadeIn .2s ease}
+.qa-box{background:linear-gradient(145deg,#12100A,#221800);border:2px solid #F97316;border-radius:20px;padding:36px 56px;display:flex;flex-direction:column;align-items:center;gap:18px;box-shadow:0 0 60px #F9731655}
+.qa-text{font-size:clamp(48px,6.5vw,88px);font-weight:900;color:#FFF;word-break:keep-all;text-shadow:0 0 40px #F9731688;letter-spacing:-1px}
+.qa-bar-wrap{width:100%;height:5px;background:#ffffff1a;border-radius:3px;overflow:hidden}
+.qa-bar{height:100%;width:100%;background:#F97316;border-radius:3px}
 .warn2-stage{font-size:14px;letter-spacing:4px;text-transform:uppercase;color:#EF4444;font-weight:700;margin-bottom:10px;border:1px solid #EF444444;padding:4px 18px;border-radius:20px;background:#EF444411}
 .warn2-msg{font-size:clamp(34px,6.5vw,76px);font-weight:900;color:#FFF;line-height:1.25;letter-spacing:-1px;text-shadow:0 0 60px #EF444455;max-width:900px;margin-bottom:20px;word-break:keep-all}
 .warn2-msg em{font-style:normal;color:#FCA5A5;display:block}
@@ -246,6 +254,13 @@ tbody tr{border-bottom:1px solid #1E2A4540}
     <div class="warn2-msg">2차 소음 임계치에 도달해서<em>책읽기 시작합니다.</em></div>
     <div class="warn2-div"></div>
     <button class="warn2-btn" onclick="dismissWarn2()">교사 닫기</button>
+  </div>
+</div>
+
+<div id="quiet-alert">
+  <div class="qa-box">
+    <div class="qa-text">🤫 조용히 하세요</div>
+    <div class="qa-bar-wrap"><div id="qa-bar" class="qa-bar"></div></div>
   </div>
 </div>
 
@@ -792,8 +807,8 @@ function tick(){
   if(isRecording&&!isMuted&&!warnShowing){
     if(db>=threshold&&!thresholdBeepCooldown){
       thresholdBeepCooldown=true;
-      playThresholdBeep();
-      setTimeout(()=>{thresholdBeepCooldown=false;},3000);
+      showQuietAlert();
+      setTimeout(()=>{thresholdBeepCooldown=false;},4000);
     } else if(db<threshold*0.93){
       thresholdBeepCooldown=false;
     }
@@ -934,19 +949,17 @@ function triggerWarn2(){
   playBeepWarn(2);
 }
 function dismissWarn2(){warnShowing=false;warnStage=0;document.getElementById('warn2-overlay').classList.remove('show');}
-function playThresholdBeep(){
-  try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    [[1050,0],[1050,0.18]].forEach(([freq,delay])=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);
-      o.frequency.value=freq;o.type='sine';
-      const t=ctx.currentTime+delay;
-      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.35,t+0.02);g.gain.linearRampToValueAtTime(0,t+0.12);
-      o.start(t);o.stop(t+0.15);
-    });
-    setTimeout(()=>ctx.close(),600);
-  }catch(e){}
+let quietAlertTimer=null;
+function showQuietAlert(){
+  const el=document.getElementById('quiet-alert');
+  el.classList.add('show');
+  const bar=document.getElementById('qa-bar');
+  bar.style.transition='none';bar.style.width='100%';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    bar.style.transition='width 3s linear';bar.style.width='0%';
+  }));
+  clearTimeout(quietAlertTimer);
+  quietAlertTimer=setTimeout(()=>el.classList.remove('show'),3000);
 }
 function playBeepWarn(stage){
   try{
